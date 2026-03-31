@@ -51,7 +51,7 @@ function abbreviateScoreSource(source: string): string {
 
 // ── WineSale shape (mirrors the type in app/ad-builder/page.tsx) ──
 
-interface WineSale {
+export interface WineSale {
   id: number;
   price: { value: string; cents: number };
   retail: { value: string; cents: number };
