@@ -160,16 +160,18 @@ const PDP_STEPS = [
   { num: 0, label: "Ad Type" },
   { num: 1, label: "Select Wines" },
   { num: 2, label: "Templates" },
-  { num: 3, label: "Review & Edit" },
-  { num: 4, label: "Publish" },
+  { num: 3, label: "Review Brief" },
+  { num: 4, label: "Review & Edit" },
+  { num: 5, label: "Publish" },
 ];
 
 const OTHER_STEPS = [
   { num: 0, label: "Ad Type" },
   { num: 1, label: "Templates" },
   { num: 2, label: "Configure" },
-  { num: 3, label: "Review & Edit" },
-  { num: 4, label: "Publish" },
+  { num: 3, label: "Review Brief" },
+  { num: 4, label: "Review & Edit" },
+  { num: 5, label: "Publish" },
 ];
 
 function BuilderStepIndicator({
@@ -259,7 +261,6 @@ function AdBuilderContent() {
   const [htmlTemplates, setHtmlTemplates] = useState<{ id: string; name: string }[]>([]);
   const [htmlTemplatesLoaded, setHtmlTemplatesLoaded] = useState(false);
   const [briefData, setBriefData] = useState<FilledBrief[] | null>(null);
-  const [showBriefReview, setShowBriefReview] = useState(false);
   const [assemblingBrief, setAssemblingBrief] = useState(false);
 
   // ── Step 3: Generation & review ──
@@ -356,7 +357,7 @@ function AdBuilderContent() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to assemble brief");
       setBriefData(data.briefs);
-      setShowBriefReview(true);
+      goToStep(3);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to assemble brief");
     } finally {
@@ -368,8 +369,7 @@ function AdBuilderContent() {
     setBriefData(approvedBriefs);
     setGenerating(true);
     setResults([]);
-    goToStep(3);
-    setShowBriefReview(false);
+    goToStep(4);
 
     setTotalToGenerate(approvedBriefs.length);
     const generated: GeneratedAdResult[] = [];
@@ -450,7 +450,7 @@ function AdBuilderContent() {
 
   // ── Load ad sets when entering publish step ──
   useEffect(() => {
-    if (step === 4 && adsets.length === 0) {
+    if (step === 5 && adsets.length === 0) {
       setAdsetsLoading(true);
       fetch("/api/meta-ads/adsets-live?brand=winespies")
         .then((r) => r.json())
@@ -548,7 +548,7 @@ function AdBuilderContent() {
     if (!canGenerate) return;
     setGenerating(true);
     setResults([]);
-    goToStep(3);
+    goToStep(4);
 
     type Task = { wine?: WineSale; referenceId?: string };
     const tasks: Task[] = [];
@@ -1749,21 +1749,8 @@ function AdBuilderContent() {
               </div>
             )}
 
-            {/* ── Brief Review Sub-State ── */}
-            {showBriefReview && briefData && (
-              <div className="mb-6 mt-2 border-t border-border pt-6">
-                <BriefReviewStep
-                  briefs={briefData}
-                  onApprove={handleBriefApproved}
-                  onBack={() => setShowBriefReview(false)}
-                  generating={generating}
-                />
-              </div>
-            )}
-
             {/* Footer */}
-            {!showBriefReview && (
-              <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center">
                 <button
                   type="button"
                   onClick={() => goToStep(1)}
@@ -1792,12 +1779,23 @@ function AdBuilderContent() {
                   </button>
                 </div>
               </div>
-            )}
           </div>
         )}
 
-        {/* ══════ Step 3: Review & Edit ══════ */}
-        {step === 3 && (
+        {/* ══════ Step 3: Review Brief ══════ */}
+        {step === 3 && briefData && (
+          <div className="p-6">
+            <BriefReviewStep
+              briefs={briefData}
+              onApprove={handleBriefApproved}
+              onBack={() => goToStep(2)}
+              generating={generating}
+            />
+          </div>
+        )}
+
+        {/* ══════ Step 4: Review & Edit ══════ */}
+        {step === 4 && (
           <div className="flex">
             {/* Main content */}
             <div
@@ -2056,7 +2054,7 @@ function AdBuilderContent() {
                   <div className="border-t border-border p-4 flex justify-between items-center">
                     <button
                       type="button"
-                      onClick={() => goToStep(2)}
+                      onClick={() => goToStep(briefData ? 3 : 2)}
                       className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-background transition-colors"
                     >
                       Back
@@ -2064,7 +2062,7 @@ function AdBuilderContent() {
                     <button
                       type="button"
                       disabled={selectedAds.length === 0}
-                      onClick={() => goToStep(4)}
+                      onClick={() => goToStep(5)}
                       className="px-6 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Publish {selectedAds.length} Ad
@@ -2155,8 +2153,8 @@ function AdBuilderContent() {
           </div>
         )}
 
-        {/* ══════ Step 4: Publish ══════ */}
-        {step === 4 && (
+        {/* ══════ Step 5: Publish ══════ */}
+        {step === 5 && (
           <div className="p-6 space-y-6">
             <div>
               <h2 className="text-lg font-semibold mb-1">
@@ -2321,7 +2319,7 @@ function AdBuilderContent() {
             <div className="flex justify-between items-center pt-2">
               <button
                 type="button"
-                onClick={() => goToStep(3)}
+                onClick={() => goToStep(4)}
                 disabled={publishing}
                 className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-background transition-colors disabled:opacity-50"
               >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { FilledBrief, FilledSlot } from "@/lib/assembler";
 
 interface BriefReviewStepProps {
@@ -89,7 +89,7 @@ function PricePillPreview({
   );
 }
 
-function HtmlPreview({
+function LivePreview({
   brief,
 }: {
   brief: FilledBrief;
@@ -98,68 +98,76 @@ function HtmlPreview({
   const [dimensions, setDimensions] = useState({ width: 1080, height: 1080 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const briefRef = useRef(brief);
+  briefRef.current = brief;
 
   const fetchPreview = useCallback(async () => {
-    if (html !== null) {
-      setOpen((v) => !v);
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
+      const currentBrief = briefRef.current;
       const res = await fetch("/api/ad-builder/preview-html", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: brief.templateId, brief }),
+        body: JSON.stringify({ templateId: currentBrief.templateId, brief: currentBrief }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Preview failed");
       setHtml(data.html);
       setDimensions({ width: data.width || 1080, height: data.height || 1080 });
-      setOpen(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Preview failed");
     } finally {
       setLoading(false);
     }
-  }, [html, brief]);
+  }, []);
 
-  const scale = 360 / dimensions.width;
+  // Auto-fetch on mount
+  useEffect(() => {
+    fetchPreview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Debounced re-fetch when brief changes
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchPreview();
+    }, 500);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+    // Re-run when slots change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brief.slots]);
+
+  const previewWidth = 500;
+  const scale = previewWidth / dimensions.width;
 
   return (
-    <div className="mt-4">
-      <button
-        type="button"
-        onClick={fetchPreview}
-        disabled={loading}
-        className="text-xs font-medium text-accent hover:text-accent/80 flex items-center gap-1.5 transition-colors disabled:opacity-50"
-      >
-        {loading ? (
-          <>
+    <div className="h-full flex flex-col">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-medium text-muted uppercase tracking-wider">
+          Live Preview
+        </span>
+        {loading && (
+          <span className="flex items-center gap-1.5 text-xs text-muted">
             <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            Loading preview...
-          </>
-        ) : (
-          <>
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            {open ? "Hide Preview" : "Preview Template"}
-          </>
+            Updating...
+          </span>
         )}
-      </button>
+      </div>
       {error && (
-        <p className="text-xs text-red-500 mt-1">{error}</p>
+        <p className="text-xs text-red-500 mb-2">{error}</p>
       )}
-      {open && html && (
+      {html ? (
         <div
-          className="mt-3 border border-border rounded-lg overflow-hidden bg-white"
-          style={{ width: 360, height: dimensions.height * scale }}
+          className="border border-border rounded-lg overflow-hidden bg-white"
+          style={{ width: previewWidth, height: dimensions.height * scale }}
         >
           <iframe
             srcDoc={html}
@@ -174,6 +182,17 @@ function HtmlPreview({
             }}
             title="Template preview"
           />
+        </div>
+      ) : !loading ? (
+        <div className="flex-1 flex items-center justify-center border border-border rounded-lg bg-background text-sm text-muted min-h-[300px]">
+          No preview available
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center border border-border rounded-lg bg-background min-h-[300px]">
+          <svg className="animate-spin h-6 w-6 text-accent" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
         </div>
       )}
     </div>
@@ -208,58 +227,64 @@ function BriefCard({
         </span>
       </div>
 
-      {/* Editable slots */}
-      {brief.slots.map((slot) => (
-        <SlotEditor
-          key={slot.key}
-          slot={slot}
-          onChange={(val) => updateSlot(slot.key, val)}
-        />
-      ))}
+      <div className="flex gap-6">
+        {/* Left column: Slot editors */}
+        <div className="w-[45%] shrink-0">
+          {brief.slots.map((slot) => (
+            <SlotEditor
+              key={slot.key}
+              slot={slot}
+              onChange={(val) => updateSlot(slot.key, val)}
+            />
+          ))}
 
-      {/* Price pill preview */}
-      {brief.pricePill && <PricePillPreview pricePill={brief.pricePill} />}
+          {/* Price pill preview */}
+          {brief.pricePill && <PricePillPreview pricePill={brief.pricePill} />}
 
-      {/* Score badge */}
-      {brief.scoreBadge && (
-        <div className="flex items-center gap-2 mb-3 text-sm">
-          <span className="font-bold text-lg text-foreground">
-            {brief.scoreBadge.score} points
-          </span>
-          <span className="text-muted">
-            {brief.scoreBadge.source}
-          </span>
+          {/* Score badge */}
+          {brief.scoreBadge && (
+            <div className="flex items-center gap-2 mb-3 text-sm">
+              <span className="font-bold text-lg text-foreground">
+                {brief.scoreBadge.score} points
+              </span>
+              <span className="text-muted">
+                {brief.scoreBadge.source}
+              </span>
+            </div>
+          )}
+
+          {/* Promo code */}
+          {brief.promoCode && (
+            <div className="text-sm text-muted mb-2">
+              Promo: <span className="font-bold text-foreground">{brief.promoCode}</span>
+            </div>
+          )}
+
+          {/* CTA preview */}
+          <div className="mt-3 px-4 py-2.5 bg-foreground text-background rounded-lg text-center text-sm font-bold uppercase tracking-wide">
+            {brief.ctaText}
+          </div>
+
+          {/* Badges */}
+          <div className="flex gap-2 mt-3">
+            {brief.showLogo && (
+              <span className="text-[10px] px-2 py-1 rounded border border-border text-muted">
+                Logo
+              </span>
+            )}
+            {brief.showTrustpilot && (
+              <span className="text-[10px] px-2 py-1 rounded border border-border text-muted">
+                Trustpilot
+              </span>
+            )}
+          </div>
         </div>
-      )}
 
-      {/* Promo code */}
-      {brief.promoCode && (
-        <div className="text-sm text-muted mb-2">
-          Promo: <span className="font-bold text-foreground">{brief.promoCode}</span>
+        {/* Right column: Live HTML preview */}
+        <div className="flex-1 min-w-0">
+          {brief.templateId && <LivePreview brief={brief} />}
         </div>
-      )}
-
-      {/* CTA preview */}
-      <div className="mt-3 px-4 py-2.5 bg-foreground text-background rounded-lg text-center text-sm font-bold uppercase tracking-wide">
-        {brief.ctaText}
       </div>
-
-      {/* Badges */}
-      <div className="flex gap-2 mt-3">
-        {brief.showLogo && (
-          <span className="text-[10px] px-2 py-1 rounded border border-border text-muted">
-            Logo
-          </span>
-        )}
-        {brief.showTrustpilot && (
-          <span className="text-[10px] px-2 py-1 rounded border border-border text-muted">
-            Trustpilot
-          </span>
-        )}
-      </div>
-
-      {/* HTML template preview */}
-      {brief.templateId && <HtmlPreview brief={brief} />}
     </div>
   );
 }
@@ -284,8 +309,7 @@ export default function BriefReviewStep({
             Review Ad Brief{briefs.length > 1 ? "s" : ""}
           </h2>
           <p className="text-sm text-muted mt-0.5">
-            Review and edit slot values before generating the final ad
-            image{briefs.length > 1 ? "s" : ""}.
+            Review and edit slot values — the preview updates automatically.
           </p>
         </div>
       </div>
