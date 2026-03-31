@@ -1,0 +1,33 @@
+# Rory the Marketer — Cursor Rules
+
+## Stack
+- Next.js 16 (App Router, no src/ dir)
+- TypeScript strict
+- Tailwind CSS v4
+- Anthropic SDK for Claude API calls
+
+## File conventions
+- `app/` — pages and API routes (Next.js App Router)
+- `lib/` — shared server utilities (brands, context bundle, context library storage)
+- `context/` — brand context markdown files (voice, personas, USPs, etc.)
+- `data/{brandId}/` — per-brand synced/generated data (JSON)
+- `docs/` — implementation docs
+
+## Patterns
+- Brand-aware: most API routes accept `brand` param; use `getBrand()` to validate
+- Context bundle: `getContextBundle(brandId)` reads markdown files from `context/`
+- Context library: CRUD via `lib/context-library-storage.ts`; if `DATABASE_URL` is set, Postgres (Prisma); else `data/{brandId}/context-library.json`
+- API routes return JSON; use `NextResponse.json()`
+- Claude calls use `@anthropic-ai/sdk` with context injected into system prompts
+
+## Style
+- Light, clean UI (not dark theme)
+- Tailwind utility classes, no component library
+- CSS variables defined in `app/globals.css` (accent, muted, border, surface, etc.)
+- Keep components simple and focused
+
+## Important
+- All context files are markdown in `context/` — read at runtime, not bundled
+- Brand ID for Wine Spies is "winespies"
+- Don't hardcode API keys; use env vars
+- Server-side only: fs operations, API keys, Claude calls

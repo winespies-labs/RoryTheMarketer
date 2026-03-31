@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Context Hub swipe files + other context library items (per brand)
+model ContextLibraryEntry {
+  id        String   @id
+  brandId   String   @map("brand_id")
+  type      String
+  title     String?
+  content   String
+  meta      Json?
+  tags      Json?
+  addedAt   DateTime @map("added_at")
+
+  @@index([brandId])
+  @@map("context_library_entries")
+}
+
+/// Inspiration Center items; image bytes optional (disk legacy uses imageFile only)
+model SwipeInspirationEntry {
+  id           String   @id
+  brandId      String   @map("brand_id")
+  type         String
+  content      String
+  title        String?
+  style        String?
+  category     String?
+  tags         Json?
+  imageFile    String?  @map("image_file")
+  imageData    Bytes?   @map("image_data")
+  imageMime    String?  @map("image_mime")
+  useInContext Boolean  @default(false) @map("use_in_context")
+  addedAt      DateTime @map("added_at")
+
+  @@index([brandId])
+  @@map("swipe_inspiration_entries")
+}
+
+// ── Meta Ads Manager snapshots ──
+
+model MetaCampaignSnapshot {
+  id              String   @id @default(cuid())
+  brandId         String   @map("brand_id")
+  metaCampaignId  String   @map("meta_campaign_id")
+  accountId       String   @map("account_id")
+  name            String
+  status          String
+  effectiveStatus String   @map("effective_status")
+  objective       String?
+  dailyBudget     String?  @map("daily_budget")
+  lifetimeBudget  String?  @map("lifetime_budget")
+  insights        Json?
+  syncedAt        DateTime @map("synced_at")
+
+  @@unique([brandId, metaCampaignId])
+  @@index([brandId])
+  @@map("meta_campaign_snapshots")
+}
+
+model MetaAdSetSnapshot {
+  id              String   @id @default(cuid())
+  brandId         String   @map("brand_id")
+  metaAdSetId     String   @map("meta_adset_id")
+  accountId       String   @map("account_id")
+  campaignId      String   @map("campaign_id")
+  name            String
+  status          String
+  effectiveStatus String   @map("effective_status")
+  dailyBudget     String?  @map("daily_budget")
+  lifetimeBudget  String?  @map("lifetime_budget")
+  bidStrategy     String?  @map("bid_strategy")
+  bidAmount       String?  @map("bid_amount")
+  insights        Json?
+  syncedAt        DateTime @map("synced_at")
+
+  @@unique([brandId, metaAdSetId])
+  @@index([brandId])
+  @@index([campaignId])
+  @@map("meta_adset_snapshots")
+}
+
+model MetaAdSnapshot {
+  id              String   @id @default(cuid())
+  brandId         String   @map("brand_id")
+  metaAdId        String   @map("meta_ad_id")
+  accountId       String   @map("account_id")
+  adsetId         String   @map("adset_id")
+  campaignId      String   @map("campaign_id")
+  name            String
+  status          String
+  effectiveStatus String   @map("effective_status")
+  creative        Json?
+  insights        Json?
+  syncedAt        DateTime @map("synced_at")
+
+  @@unique([brandId, metaAdId])
+  @@index([brandId])
+  @@index([campaignId])
+  @@map("meta_ad_snapshots")
+}
+
+model MetaDailyInsight {
+  id          String   @id @default(cuid())
+  brandId     String   @map("brand_id")
+  accountId   String   @map("account_id")
+  date        String
+  spend       Float    @default(0)
+  revenue     Float    @default(0)
+  roas        Float    @default(0)
+  purchases   Float    @default(0)
+  cpa         Float    @default(0)
+  clicks      Float    @default(0)
+  impressions Float    @default(0)
+  ctr         Float    @default(0)
+  cpc         Float    @default(0)
+  cpm         Float    @default(0)
+  fetchedAt   DateTime @map("fetched_at")
+
+  @@unique([brandId, date])
+  @@index([brandId, date])
+  @@map("meta_daily_insights")
+}
+
+model Writeup {
+  id        String   @id
+  brandId   String   @map("brand_id")
+  title     String
+  content   String
+  status    String   @default("draft")
+  score     Int?
+  createdAt DateTime @map("created_at")
+  updatedAt DateTime @map("updated_at")
+
+  @@index([brandId])
+  @@map("writeups")
+}
+
+model MetaSyncLog {
+  id            String   @id @default(cuid())
+  brandId       String   @map("brand_id")
+  syncType      String   @map("sync_type")
+  status        String
+  campaignCount Int?     @map("campaign_count")
+  adsetCount    Int?     @map("adset_count")
+  adCount       Int?     @map("ad_count")
+  daysCount     Int?     @map("days_count")
+  error         String?
+  completedAt   DateTime @map("completed_at")
+
+  @@index([brandId])
+  @@map("meta_sync_logs")
+}

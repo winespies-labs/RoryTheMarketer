@@ -1,0 +1,47 @@
+{
+  "name": "rory-the-marketer",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "prisma migrate deploy && next start",
+    "lint": "eslint",
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@fal-ai/client": "^1.9.4",
+    "@google/genai": "^1.44.0",
+    "@notionhq/client": "^2.2.15",
+    "@prisma/client": "^6.19.0",
+    "apify-client": "^2.22.2",
+    "googleapis": "^144.0.0",
+    "gray-matter": "^4.0.3",
+    "nanoid": "^5.1.6",
+    "next": "16.1.6",
+    "openai": "^6.27.0",
+    "prisma": "^6.19.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.8.0",
+    "remark-gfm": "^4.0.1",
+    "puppeteer": "^24.0.0",
+    "puppeteer-core": "^24.0.0",
+    "@sparticuz/chromium": "^131.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
