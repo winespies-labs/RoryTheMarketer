@@ -9,6 +9,7 @@
     },
     "body": {
       "source": "critic_quote",
+      "fallback": "our_copy",
       "max_chars": 220
     },
     "price_pill": true,

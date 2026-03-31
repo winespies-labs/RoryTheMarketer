@@ -9,6 +9,8 @@ export interface SlotDefinition {
   source: "computed" | string;
   /** Format string with {{field}} tokens (only when source === "computed") */
   format?: string;
+  /** Product field name to try if primary source resolves empty */
+  fallback?: string;
   /** Max characters before truncation */
   max_chars?: number;
 }

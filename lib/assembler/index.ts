@@ -8,6 +8,8 @@ export interface FilledSlot {
   value: string;
   source: string;
   truncated: boolean;
+  usedFallback: boolean;
+  maxChars?: number;
   editable: boolean;
 }
 
@@ -58,19 +60,12 @@ export function assembleBrief(
   product: TemplateProduct,
   schema: TemplateSchema,
 ): FilledBrief {
-  const savings = Math.round(product.price_retail - product.price_sale);
-  const savingsPercent =
-    product.price_retail > 0
-      ? Math.round((savings / product.price_retail) * 100)
-      : 0;
-
-  // Variable map for token resolution
+  // Variable map for token resolution — product already has savings/discount_pct
+  const { promo_code: _pc, bottle_image_url: _bu, ...productFields } = product;
   const vars: Record<string, string | number> = {
-    ...product,
-    savings,
-    savingsPercent,
-    price_retail: product.price_retail,
-    price_sale: product.price_sale,
+    ...productFields,
+    savingsPercent: product.discount_pct,
+    promo_code: product.promo_code ?? "",
   };
 
   const slots: FilledSlot[] = [];
@@ -78,13 +73,15 @@ export function assembleBrief(
   // Process headline slot
   if (schema.slots.headline && typeof schema.slots.headline === "object") {
     const def = schema.slots.headline as SlotDefinition;
-    const raw = resolveSlotValue(def, product, vars);
+    const { value: raw, usedFallback } = resolveSlotValue(def, product, vars);
     const { text, truncated } = truncate(raw, def.max_chars);
     slots.push({
       key: "headline",
       value: text,
-      source: def.source,
+      source: usedFallback ? def.fallback! : def.source,
       truncated,
+      usedFallback,
+      maxChars: def.max_chars,
       editable: true,
     });
   }
@@ -92,13 +89,15 @@ export function assembleBrief(
   // Process body slot
   if (schema.slots.body && typeof schema.slots.body === "object") {
     const def = schema.slots.body as SlotDefinition;
-    const raw = resolveSlotValue(def, product, vars);
+    const { value: raw, usedFallback } = resolveSlotValue(def, product, vars);
     const { text, truncated } = truncate(raw, def.max_chars);
     slots.push({
       key: "body",
       value: text,
-      source: def.source,
+      source: usedFallback ? def.fallback! : def.source,
       truncated,
+      usedFallback,
+      maxChars: def.max_chars,
       editable: true,
     });
   }
@@ -108,8 +107,8 @@ export function assembleBrief(
     ? {
         retail: `$${product.price_retail}`,
         sale: `$${product.price_sale}`,
-        savings: `$${savings}`,
-        savingsPercent,
+        savings: `$${product.savings}`,
+        savingsPercent: product.discount_pct,
       }
     : null;
 
@@ -148,13 +147,27 @@ function resolveSlotValue(
   def: SlotDefinition,
   product: TemplateProduct,
   vars: Record<string, string | number>,
-): string {
+): { value: string; usedFallback: boolean } {
   if (def.source === "computed" && def.format) {
-    return resolveTokens(def.format, vars);
+    return { value: resolveTokens(def.format, vars), usedFallback: false };
   }
+
   // Source is a product field name
   const fieldValue = (product as unknown as Record<string, unknown>)[def.source];
-  return fieldValue !== undefined && fieldValue !== null
-    ? String(fieldValue)
-    : "";
+  const primary = fieldValue !== undefined && fieldValue !== null ? String(fieldValue).trim() : "";
+
+  if (primary) {
+    return { value: primary, usedFallback: false };
+  }
+
+  // Try fallback field if primary is empty
+  if (def.fallback) {
+    const fbValue = (product as unknown as Record<string, unknown>)[def.fallback];
+    const fallbackStr = fbValue !== undefined && fbValue !== null ? String(fbValue).trim() : "";
+    if (fallbackStr) {
+      return { value: fallbackStr, usedFallback: true };
+    }
+  }
+
+  return { value: "", usedFallback: false };
 }

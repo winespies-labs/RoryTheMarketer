@@ -32,6 +32,11 @@ function SlotEditor({
             truncated
           </span>
         )}
+        {slot.usedFallback && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200">
+            fallback
+          </span>
+        )}
       </div>
       {isLong ? (
         <textarea
@@ -49,6 +54,11 @@ function SlotEditor({
           onChange={(e) => onChange(e.target.value)}
           readOnly={!slot.editable}
         />
+      )}
+      {slot.maxChars && (
+        <div className={`text-[11px] mt-0.5 ${slot.value.length > slot.maxChars ? "text-red-500 font-medium" : slot.value.length >= slot.maxChars * 0.9 ? "text-amber-600" : "text-muted"}`}>
+          {slot.value.length}/{slot.maxChars}
+        </div>
       )}
     </div>
   );
