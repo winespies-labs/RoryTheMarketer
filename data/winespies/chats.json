@@ -1,0 +1,20 @@
+{
+  "updatedAt": "2026-03-11T16:14:14.871Z",
+  "chats": [
+    {
+      "id": "jlLdhs58GzV6LgOkN2Vbu",
+      "brandId": "winespies",
+      "title": "Are you working",
+      "createdAt": "2026-03-11T16:14:06.306Z",
+      "updatedAt": "2026-03-11T16:14:14.871Z",
+      "messages": [
+        {
+          "id": "xN5ib0dowhFSKOjAaekwi",
+          "role": "user",
+          "content": "Are you working",
+          "createdAt": "2026-03-11T16:14:14.871Z"
+        }
+      ]
+    }
+  ]
+}
