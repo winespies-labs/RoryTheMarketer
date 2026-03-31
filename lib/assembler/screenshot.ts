@@ -34,7 +34,14 @@ export async function screenshotHtml(options: {
   width: number;
   height: number;
 }): Promise<{ buffer: Buffer; mimeType: "image/png" }> {
-  const browser = await getBrowser();
+  let browser: Browser;
+  try {
+    browser = await getBrowser();
+  } catch {
+    // Reset stale instance and retry once
+    browserInstance = null;
+    browser = await getBrowser();
+  }
   const page = await browser.newPage();
 
   try {
@@ -44,7 +51,10 @@ export async function screenshotHtml(options: {
       deviceScaleFactor: 1,
     });
 
-    await page.setContent(options.html, { waitUntil: "networkidle0" });
+    await page.setContent(options.html, {
+      waitUntil: "networkidle2",
+      timeout: 15_000,
+    });
 
     const screenshot = await page.screenshot({
       type: "png",
