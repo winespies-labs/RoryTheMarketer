@@ -268,6 +268,9 @@ function AdBuilderContent() {
   const [generatingIdx, setGeneratingIdx] = useState(0);
   const [totalToGenerate, setTotalToGenerate] = useState(0);
   const [showChat, setShowChat] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string } | null>(null);
+  const [savedAdIds, setSavedAdIds] = useState<Set<string>>(new Set());
+  const [savingAds, setSavingAds] = useState(false);
 
   // ── Step 3: AI chat ──
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -682,6 +685,42 @@ function AdBuilderContent() {
 
   const selectedAds = results.filter((r) => r.selected && r.imageBase64);
   const validResults = results.filter((r) => r.imageBase64);
+
+  const handleSaveAds = async (adsToSave: GeneratedAdResult[]) => {
+    if (adsToSave.length === 0) return;
+    setSavingAds(true);
+    try {
+      const payload = adsToSave.map((ad) => ({
+        id: ad.id,
+        wineName: ad.wineName,
+        saleId: ad.saleId,
+        templateId: ad.referenceId || "",
+        headline: ad.copyVariation.headline,
+        primaryText: ad.copyVariation.primaryText,
+        description: ad.copyVariation.description,
+        destinationUrl: ad.destinationUrl,
+        imageBase64: ad.imageBase64,
+        imageMimeType: ad.imageMimeType,
+        savedAt: new Date().toISOString(),
+      }));
+      const res = await fetch("/api/ad-builder/saved-ads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ads: payload }),
+      });
+      if (res.ok) {
+        setSavedAdIds((prev) => {
+          const next = new Set(prev);
+          adsToSave.forEach((ad) => next.add(ad.id));
+          return next;
+        });
+      }
+    } catch {
+      // silent fail — user sees no checkmark
+    } finally {
+      setSavingAds(false);
+    }
+  };
 
   // ── AI Chat ──
   const sendChat = async () => {
@@ -1830,13 +1869,26 @@ function AdBuilderContent() {
                         {selectedAds.length} of {results.length} selected
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowChat(!showChat)}
-                      className="text-xs text-accent hover:underline flex items-center gap-1"
-                    >
-                      {showChat ? "Hide" : "Show"} AI Chat
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={savingAds || selectedAds.length === 0 || selectedAds.every((a) => savedAdIds.has(a.id))}
+                        onClick={() => handleSaveAds(selectedAds.filter((a) => !savedAdIds.has(a.id)))}
+                        className="text-xs text-accent hover:underline flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                        </svg>
+                        {savingAds ? "Saving..." : "Save Selected"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowChat(!showChat)}
+                        className="text-xs text-accent hover:underline flex items-center gap-1"
+                      >
+                        {showChat ? "Hide" : "Show"} AI Chat
+                      </button>
+                    </div>
                   </div>
 
                   {/* Ad rows */}
@@ -1882,14 +1934,18 @@ function AdBuilderContent() {
                         </div>
 
                         {/* Thumbnail */}
-                        <div className="shrink-0 w-20 h-20 relative rounded-lg overflow-hidden bg-background border border-border">
+                        <button
+                          type="button"
+                          className="shrink-0 w-48 h-48 relative rounded-lg overflow-hidden bg-background border border-border cursor-pointer hover:ring-2 hover:ring-accent/40 transition-shadow"
+                          onClick={() => ad.imageBase64 && setLightboxImage({ src: `data:${ad.imageMimeType};base64,${ad.imageBase64}`, alt: ad.wineName })}
+                        >
                           {ad.imageBase64 ? (
                             <Image
                               src={`data:${ad.imageMimeType};base64,${ad.imageBase64}`}
                               alt={ad.wineName}
                               fill
                               className="object-contain"
-                              sizes="80px"
+                              sizes="192px"
                               unoptimized
                             />
                           ) : (
@@ -1897,7 +1953,7 @@ function AdBuilderContent() {
                               No image
                             </div>
                           )}
-                        </div>
+                        </button>
 
                         {/* Copy fields */}
                         <div className="flex-1 min-w-0 space-y-1.5">
@@ -1908,6 +1964,33 @@ function AdBuilderContent() {
                             <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-black/10 text-muted shrink-0">
                               {ad.mode}
                             </span>
+                            {/* Per-ad save button */}
+                            <button
+                              type="button"
+                              disabled={savingAds || savedAdIds.has(ad.id)}
+                              onClick={() => handleSaveAds([ad])}
+                              className="ml-auto shrink-0 text-[10px] px-2 py-1 rounded border flex items-center gap-1 transition-colors disabled:cursor-not-allowed"
+                              style={{
+                                borderColor: savedAdIds.has(ad.id) ? "var(--success)" : "var(--border)",
+                                color: savedAdIds.has(ad.id) ? "var(--success)" : "var(--accent)",
+                              }}
+                            >
+                              {savedAdIds.has(ad.id) ? (
+                                <>
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  Saved
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                  </svg>
+                                  Save
+                                </>
+                              )}
+                            </button>
                           </div>
                           <div>
                             <label className="text-[10px] text-muted uppercase tracking-wider">
@@ -2312,6 +2395,32 @@ function AdBuilderContent() {
           }}
           onClose={() => setEditorOpen(false)}
         />
+      )}
+
+      {/* Lightbox overlay */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-8 cursor-pointer"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div className="relative max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lightboxImage.src}
+              alt={lightboxImage.alt}
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            />
+            <button
+              type="button"
+              onClick={() => setLightboxImage(null)}
+              className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg text-gray-800 hover:bg-gray-100 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

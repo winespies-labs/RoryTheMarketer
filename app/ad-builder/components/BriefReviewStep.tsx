@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import type { FilledBrief, FilledSlot } from "@/lib/assembler";
 
 interface BriefReviewStepProps {
@@ -89,6 +89,97 @@ function PricePillPreview({
   );
 }
 
+function HtmlPreview({
+  brief,
+}: {
+  brief: FilledBrief;
+}) {
+  const [html, setHtml] = useState<string | null>(null);
+  const [dimensions, setDimensions] = useState({ width: 1080, height: 1080 });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const fetchPreview = useCallback(async () => {
+    if (html !== null) {
+      setOpen((v) => !v);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/ad-builder/preview-html", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId: brief.templateId, brief }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Preview failed");
+      setHtml(data.html);
+      setDimensions({ width: data.width || 1080, height: data.height || 1080 });
+      setOpen(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Preview failed");
+    } finally {
+      setLoading(false);
+    }
+  }, [html, brief]);
+
+  const scale = 360 / dimensions.width;
+
+  return (
+    <div className="mt-4">
+      <button
+        type="button"
+        onClick={fetchPreview}
+        disabled={loading}
+        className="text-xs font-medium text-accent hover:text-accent/80 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+      >
+        {loading ? (
+          <>
+            <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Loading preview...
+          </>
+        ) : (
+          <>
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            {open ? "Hide Preview" : "Preview Template"}
+          </>
+        )}
+      </button>
+      {error && (
+        <p className="text-xs text-red-500 mt-1">{error}</p>
+      )}
+      {open && html && (
+        <div
+          className="mt-3 border border-border rounded-lg overflow-hidden bg-white"
+          style={{ width: 360, height: dimensions.height * scale }}
+        >
+          <iframe
+            srcDoc={html}
+            sandbox="allow-same-origin"
+            style={{
+              width: dimensions.width,
+              height: dimensions.height,
+              transform: `scale(${scale})`,
+              transformOrigin: "top left",
+              border: "none",
+              display: "block",
+            }}
+            title="Template preview"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BriefCard({
   brief,
   index,
@@ -166,6 +257,9 @@ function BriefCard({
           </span>
         )}
       </div>
+
+      {/* HTML template preview */}
+      {brief.templateId && <HtmlPreview brief={brief} />}
     </div>
   );
 }
