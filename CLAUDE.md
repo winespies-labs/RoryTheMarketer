@@ -68,7 +68,7 @@ Wine data → template variables → filled HTML → Puppeteer screenshot. Templ
 - All routes return JSON via `NextResponse.json()`
 - Long-running AI routes set `export const maxDuration = 60`
 - Claude calls use `@anthropic-ai/sdk` — server-side only
-- No authentication on any routes
+- Simple cookie-based auth via middleware (disabled when `AUTH_*` env vars unset)
 
 ## Key Patterns
 
@@ -84,7 +84,13 @@ Wine data → template variables → filled HTML → Puppeteer screenshot. Templ
 
 **Recommended:** `DATABASE_URL` (PostgreSQL), `META_ACCESS_TOKEN`
 
+**Authentication (optional):** `AUTH_USERNAME`, `AUTH_PASSWORD`, `AUTH_SECRET` — when all three are set, cookie-based login is enforced. Unset = open access (local dev).
+
 **Feature-specific:** `META_AD_ACCOUNT_ID`, `META_PAGE_ID`, `GOOGLE_AI_API_KEY`, `FAL_KEY`, `OPENAI_API_KEY`, `APIFY_API_TOKEN`, `SLACK_BOT_TOKEN`, `SLACK_REVIEWS_CHANNEL_ID`, `FOREPLAY_API_KEY`, `CRON_SECRET`
+
+**Reviews Slack sync (scheduled):** With `next start` (e.g. Railway), an in-process daily job runs after the server boots: `instrumentation.ts` → `lib/reviews-slack-cron.ts`. It runs once per day at **UTC** hour `REVIEWS_SLACK_CRON_HOUR_UTC` (default `6`). Requires `SLACK_BOT_TOKEN` and `SLACK_REVIEWS_CHANNEL_ID`. Set `ENABLE_REVIEWS_SLACK_CRON=false` to turn off. Skips `next dev`. Optional: `REVIEWS_SLACK_CRON_BRAND` (default first brand in `lib/brands.ts`).
+
+**Optional HTTP trigger:** `GET /api/cron/reviews-sync?brand=winespies` with `Authorization: Bearer <CRON_SECRET>` if you prefer an external scheduler or a second Railway cron service instead of the built-in job.
 
 ## App Sections
 
