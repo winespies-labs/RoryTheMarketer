@@ -40,6 +40,7 @@ export async function GET(req: NextRequest) {
       visualNotes: ad.visualNotes,
       promptGuidance,
       adDescription: ad.adDescription,
+      generationPrompt: ad.generationPrompt || undefined,
     },
   });
 }

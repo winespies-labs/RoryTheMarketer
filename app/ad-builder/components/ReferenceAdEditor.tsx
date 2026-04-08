@@ -10,6 +10,7 @@ type ReferenceAdDetail = {
   brand: string;
   aspectRatio?: AspectRatio;
   adDescription?: string;
+  generationPrompt?: string;
   imageFile?: string;
   // Legacy fields for backward compat when loading old ads
   primaryText?: string;
@@ -56,6 +57,9 @@ export default function ReferenceAdEditor({
   );
   const [adDescription, setAdDescription] = useState(
     referenceAd ? buildFallbackDescription(referenceAd) : "",
+  );
+  const [generationPrompt, setGenerationPrompt] = useState(
+    referenceAd?.generationPrompt || "",
   );
 
   // Image state
@@ -123,6 +127,7 @@ export default function ReferenceAdEditor({
       }
 
       if (data.adDescription) setAdDescription(data.adDescription);
+      if (data.generationPrompt) setGenerationPrompt(data.generationPrompt);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to analyze image");
     } finally {
@@ -149,6 +154,7 @@ export default function ReferenceAdEditor({
         brand: brandId,
         aspectRatio,
         adDescription: adDescription.trim() || undefined,
+        generationPrompt: generationPrompt.trim() || undefined,
       };
 
       if (mode === "create") {
@@ -344,13 +350,41 @@ export default function ReferenceAdEditor({
               Ad Description
             </label>
             <p className="text-[10px] text-muted mb-2">
-              Describe this ad — the visual layout, the copy, and how you&apos;d want variations made.
+              Freeform analysis of the ad — layout, copy, and variation guidance.
             </p>
             <textarea
               value={adDescription}
               onChange={(e) => setAdDescription(e.target.value)}
-              rows={12}
-              placeholder="Describe this ad — the visual layout, the copy, and how you'd want variations made. Include any details about background, product placement, typography, pricing display, CTA style, and messaging approach."
+              rows={8}
+              placeholder="Describe this ad — the visual layout, the copy, and how you'd want variations made."
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:border-accent resize-y font-mono text-xs"
+            />
+          </div>
+
+          {/* Generation Prompt */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-medium">
+                Generation Prompt
+              </label>
+              {generationPrompt && (
+                <span className="text-[10px] text-success font-medium">Ready</span>
+              )}
+            </div>
+            <p className="text-[10px] text-muted mb-2">
+              The complete Nano Banana 2 prompt sent to Gemini at generation time. Use{" "}
+              <code className="font-mono bg-background px-1 rounded">{"{{wineName}}"}</code>,{" "}
+              <code className="font-mono bg-background px-1 rounded">{"{{score}}"}</code>,{" "}
+              <code className="font-mono bg-background px-1 rounded">{"{{salePrice}}"}</code>,{" "}
+              <code className="font-mono bg-background px-1 rounded">{"{{retailPrice}}"}</code>,{" "}
+              <code className="font-mono bg-background px-1 rounded">{"{{ctaText}}"}</code>,{" "}
+              <code className="font-mono bg-background px-1 rounded">{"{{pullQuote}}"}</code> for dynamic wine data.
+            </p>
+            <textarea
+              value={generationPrompt}
+              onChange={(e) => setGenerationPrompt(e.target.value)}
+              rows={14}
+              placeholder="Click 'Analyze Image' to auto-generate this prompt, or write it manually. Be explicit about hex colors, pixel dimensions, and border-radius values."
               className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:border-accent resize-y font-mono text-xs"
             />
           </div>

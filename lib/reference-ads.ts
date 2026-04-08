@@ -203,6 +203,7 @@ export type ReferenceAdCreateInput = {
   visualNotes?: string;
   promptGuidance?: string;
   adDescription?: string;
+  generationPrompt?: string;
 };
 
 export type ReferenceAdUpdateInput = Partial<ReferenceAdCreateInput> & {
@@ -230,11 +231,15 @@ function sanitizeFilename(name: string): string {
 export function buildMarkdownFromDescription(
   frontmatter: Record<string, unknown>,
   adDescription: string,
+  generationPrompt?: string,
 ): string {
   const fm = matter.stringify("", frontmatter).trim();
   const parts: string[] = [fm, ""];
   if (adDescription) {
     parts.push("## Ad Description", "", adDescription, "");
+  }
+  if (generationPrompt) {
+    parts.push("## Generation Prompt", "", generationPrompt, "");
   }
   return parts.join("\n");
 }
@@ -318,14 +323,14 @@ export function createReferenceAd(
   }
 
   const markdown = input.adDescription
-    ? buildMarkdownFromDescription(fmData, input.adDescription)
+    ? buildMarkdownFromDescription(fmData, input.adDescription, input.generationPrompt)
     : buildMarkdownFromSections(fmData, {
         primaryText: input.primaryText,
         headline: input.headline,
         description: input.description,
         visualNotes: input.visualNotes,
         promptGuidance: input.promptGuidance,
-      });
+      }) + (input.generationPrompt ? `\n## Generation Prompt\n\n${input.generationPrompt}\n` : "");
 
   // Write markdown
   fs.writeFileSync(path.join(dir, `${id}.md`), markdown, "utf8");
@@ -411,12 +416,18 @@ export function updateReferenceAd(
     if (fmData[key] === undefined) delete fmData[key];
   }
 
+  // Preserve existing generationPrompt unless explicitly overridden
+  const generationPrompt =
+    input.generationPrompt !== undefined
+      ? input.generationPrompt || undefined
+      : existing.generationPrompt || undefined;
+
   // Use adDescription format if provided, otherwise fall back to structured sections
   const adDesc = input.adDescription !== undefined ? input.adDescription : null;
 
   let markdown: string;
   if (adDesc !== null) {
-    markdown = buildMarkdownFromDescription(fmData, adDesc);
+    markdown = buildMarkdownFromDescription(fmData, adDesc, generationPrompt);
   } else {
     const sections: ReferenceAdSections = {
       primaryText:
@@ -439,6 +450,9 @@ export function updateReferenceAd(
           : (extractPromptGuidance(existing.rawMarkdown) || undefined),
     };
     markdown = buildMarkdownFromSections(fmData, sections);
+    if (generationPrompt) {
+      markdown += `\n## Generation Prompt\n\n${generationPrompt}\n`;
+    }
   }
 
   fs.writeFileSync(mdPath, markdown, "utf8");
