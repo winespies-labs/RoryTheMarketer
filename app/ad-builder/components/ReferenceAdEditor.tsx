@@ -344,32 +344,25 @@ export default function ReferenceAdEditor({
             </div>
           </div>
 
-          {/* Ad Description */}
-          <div>
-            <label className="block text-xs font-medium mb-1">
-              Ad Description
-            </label>
-            <p className="text-[10px] text-muted mb-2">
-              Freeform analysis of the ad — layout, copy, and variation guidance.
-            </p>
-            <textarea
-              value={adDescription}
-              onChange={(e) => setAdDescription(e.target.value)}
-              rows={8}
-              placeholder="Describe this ad — the visual layout, the copy, and how you'd want variations made."
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:border-accent resize-y font-mono text-xs"
-            />
-          </div>
-
           {/* Generation Prompt */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-medium">
                 Generation Prompt
               </label>
-              {generationPrompt && (
-                <span className="text-[10px] text-success font-medium">Ready</span>
-              )}
+              <div className="flex items-center gap-2">
+                {generationPrompt && (
+                  <span className="text-[10px] text-success font-medium">Ready</span>
+                )}
+                <button
+                  type="button"
+                  onClick={handleBuildPrompt}
+                  disabled={buildingPrompt || (!imageFile && !imagePreview)}
+                  className="px-2.5 py-1 text-[11px] font-medium bg-accent text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40"
+                >
+                  {buildingPrompt ? "Analyzing…" : "Generate with AI"}
+                </button>
+              </div>
             </div>
             <p className="text-[10px] text-muted mb-2">
               The complete Nano Banana 2 prompt sent to Gemini at generation time. Use{" "}
