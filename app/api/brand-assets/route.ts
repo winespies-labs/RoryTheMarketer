@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBrand } from "@/lib/brands";
 import { readBrandAssets, deleteBrandAsset } from "@/lib/brand-assets-storage";
+import { useDatabase } from "@/lib/database";
 import type { AssetCategory } from "@/lib/brand-assets";
 
 export async function GET(req: NextRequest) {
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
     assets = assets.filter((a) => a.category === category);
   }
 
-  return NextResponse.json({ assets });
+  return NextResponse.json({ assets, storageMode: useDatabase() ? "database" : "filesystem" });
 }
 
 export async function DELETE(req: NextRequest) {

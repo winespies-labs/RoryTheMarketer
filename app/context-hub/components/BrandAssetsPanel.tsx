@@ -26,6 +26,7 @@ export default function BrandAssetsPanel({
   const [assets, setAssets] = useState<BrandAssetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatedAt, setUpdatedAt] = useState<string | undefined>();
+  const [storageMode, setStorageMode] = useState<"database" | "filesystem" | null>(null);
   const [filter, setFilter] = useState<FilterValue>(ALL_FILTER);
 
   // Upload form state
@@ -44,6 +45,7 @@ export default function BrandAssetsPanel({
       const data = await res.json();
       setAssets(data.assets ?? []);
       setUpdatedAt(data.updatedAt);
+      setStorageMode(data.storageMode ?? null);
     } catch {
       // ignore
     } finally {
@@ -114,6 +116,19 @@ export default function BrandAssetsPanel({
         <p className="text-sm text-muted">
           Upload and manage logos, badges, product images, and backgrounds. These assets are available when building ad creatives.
         </p>
+
+        {/* Storage mode warning */}
+        {storageMode === "filesystem" && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-800">
+            <span className="font-semibold">Ephemeral storage</span> — assets are saved to disk and will be lost on the next deployment. Set{" "}
+            <code className="font-mono bg-amber-100 px-1 rounded">DATABASE_URL</code> in your Railway environment variables to persist assets in Postgres.
+          </div>
+        )}
+        {storageMode === "database" && (
+          <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2.5 text-xs text-green-800">
+            <span className="font-semibold">Postgres storage</span> — assets are stored in the database and will survive deployments.
+          </div>
+        )}
 
         {/* Stats */}
         <div className="text-sm text-muted">
