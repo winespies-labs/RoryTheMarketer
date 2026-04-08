@@ -1,26 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { readStyles, getAdBuilderDir } from "@/lib/ad-builder-storage";
-import { STYLES_SUBDIR } from "@/lib/ad-builder";
+import { listReferenceAds, getReferenceAdStyleImagePath } from "@/lib/reference-ads";
 
-export async function GET(req: NextRequest) {
-  const brand = req.nextUrl.searchParams.get("brand") ?? "winespies";
-  const { styles } = readStyles(brand);
+export async function GET(_req: NextRequest) {
+  const ads = listReferenceAds();
 
-  const withImages = styles.map((style) => {
-    const imgPath = path.join(getAdBuilderDir(brand), STYLES_SUBDIR, style.filename);
+  const withImages = ads.map((ad) => {
     let imageBase64 = "";
     let mimeType = "image/png";
-    try {
-      imageBase64 = fs.readFileSync(imgPath).toString("base64");
-      const ext = path.extname(style.filename).toLowerCase();
-      if (ext === ".jpg" || ext === ".jpeg") mimeType = "image/jpeg";
-      else if (ext === ".webp") mimeType = "image/webp";
-    } catch {
-      // Style image missing — return empty, card will show placeholder
+    const imagePath = getReferenceAdStyleImagePath(ad.id);
+    if (imagePath) {
+      try {
+        imageBase64 = fs.readFileSync(imagePath).toString("base64");
+        const ext = path.extname(imagePath).toLowerCase();
+        if (ext === ".jpg" || ext === ".jpeg") mimeType = "image/jpeg";
+        else if (ext === ".webp") mimeType = "image/webp";
+      } catch {
+        // image unreadable — return empty, card will show placeholder
+      }
     }
-    return { id: style.id, name: style.name, addedAt: style.addedAt, imageBase64, mimeType };
+    return { id: ad.id, name: ad.label, imageBase64, mimeType };
   });
 
   return NextResponse.json(withImages);

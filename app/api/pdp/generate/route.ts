@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
-import path from "path";
 import { generateAdImage } from "@/lib/gemini";
-import { readStyles, getAdBuilderDir } from "@/lib/ad-builder-storage";
-import { STYLES_SUBDIR } from "@/lib/ad-builder";
+import { getReferenceAdById, getReferenceAdStyleImagePath } from "@/lib/reference-ads";
 import type { WineDetails } from "@/lib/ad-builder";
 
 export const maxDuration = 120;
@@ -32,7 +30,6 @@ export async function POST(req: NextRequest) {
       };
     };
 
-    const brand = body.brand ?? "winespies";
     const { styleId, wineData } = body;
 
     if (!styleId || !wineData?.bottleImageUrl) {
@@ -42,24 +39,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Load style reference image from ad-builder styles directory
-    const { styles } = readStyles(brand);
-    const style = styles.find((s) => s.id === styleId);
-    if (!style) {
+    // Load style reference image from reference ads
+    const refAd = getReferenceAdById(styleId);
+    if (!refAd) {
       return NextResponse.json({ error: `Style not found: ${styleId}` }, { status: 404 });
     }
 
-    const stylePath = path.join(getAdBuilderDir(brand), STYLES_SUBDIR, style.filename);
-    if (!fs.existsSync(stylePath)) {
+    const stylePath = getReferenceAdStyleImagePath(styleId);
+    if (!stylePath) {
       return NextResponse.json({ error: "Style image file missing on disk" }, { status: 404 });
     }
 
     const styleBase64 = fs.readFileSync(stylePath).toString("base64");
-    const styleExt = path.extname(style.filename).toLowerCase();
+    const styleExtLower = stylePath.split(".").pop()?.toLowerCase() ?? "";
     const styleMime =
-      styleExt === ".jpg" || styleExt === ".jpeg"
+      styleExtLower === "jpg" || styleExtLower === "jpeg"
         ? "image/jpeg"
-        : styleExt === ".webp"
+        : styleExtLower === "webp"
         ? "image/webp"
         : "image/png";
 
@@ -80,7 +76,7 @@ export async function POST(req: NextRequest) {
       referenceImageMimeType: styleMime,
       bottleImages: [{ base64: bottle.base64, mimeType: bottle.mimeType }],
       wineDetails,
-      styleName: style.name,
+      styleName: refAd.meta.label,
       strictTemplateMode: true,
     });
 
