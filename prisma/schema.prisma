@@ -156,3 +156,86 @@ model MetaSyncLog {
   @@index([brandId])
   @@map("meta_sync_logs")
 }
+
+/// Customer reviews (Trustpilot, App Store, Slack); replaces JSON when DATABASE_URL is set
+model CustomerReview {
+  id               String   @id
+  brandId          String   @map("brand_id")
+  source           String
+  title            String?
+  content          String   @db.Text
+  author           String?
+  rating           Int?
+  createdAt        DateTime @map("created_at")
+  slackMessageTs   String?  @map("slack_message_ts")
+  starred          Boolean  @default(false)
+  topics           String[] @default([])
+
+  @@unique([brandId, slackMessageTs])
+  @@index([brandId])
+  @@index([brandId, starred])
+  @@map("customer_reviews")
+}
+
+model BrandReviewMeta {
+  brandId        String   @id @map("brand_id")
+  updatedAt      DateTime @map("updated_at")
+  slackChannelId String?  @map("slack_channel_id")
+
+  @@map("brand_review_meta")
+}
+
+/// PDP Builder — custom template schemas defined by the user
+model PdpTemplate {
+  id        String   @id
+  brandId   String   @map("brand_id")
+  name      String
+  type      String
+  /// JSON: Record<string, FieldDefinition>
+  fields    Json
+  thumbnail String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([brandId])
+  @@map("pdp_templates")
+}
+
+/// PDP Builder — generated ads saved from the generation step
+model PdpGeneratedAd {
+  id           String   @id @default(cuid())
+  brandId      String   @map("brand_id")
+  saleId       Int      @map("sale_id")
+  templateId   String   @map("template_id")
+  wineName     String   @map("wine_name")
+  templateName String   @map("template_name")
+  headline     String
+  primaryText  String   @map("primary_text") @db.Text
+  description  String
+  imageUrl     String?  @map("image_url")
+  saleUrl      String   @map("sale_url")
+  /// "saved" | "published"
+  status       String   @default("saved")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([brandId])
+  @@index([brandId, saleId])
+  @@map("pdp_generated_ads")
+}
+
+/// Context Hub brand assets (logos, badges); Postgres when DATABASE_URL is set — survives deploys
+model BrandAssetEntry {
+  id           String   @id
+  brandId      String   @map("brand_id")
+  label        String
+  category     String
+  /// Legacy disk filename under data/{brandId}/brand-assets/; null when bytes live in imageData
+  filename     String?
+  imageData    Bytes?   @map("image_data")
+  imageMime    String?  @map("image_mime")
+  originalName String?  @map("original_name")
+  uploadedAt   DateTime @map("uploaded_at")
+
+  @@index([brandId])
+  @@map("brand_asset_entries")
+}

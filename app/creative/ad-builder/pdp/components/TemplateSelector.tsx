@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
   TEMPLATE_SCHEMAS,
@@ -9,6 +9,41 @@ import {
 } from "../../_shared/wineAdContext";
 
 const LS_KEY = "pdp_custom_templates";
+
+async function fetchDbTemplates(brand: string): Promise<TemplateSchema[]> {
+  try {
+    const res = await fetch(`/api/creative/templates?brand=${brand}`);
+    if (!res.ok) return [];
+    const rows = (await res.json()) as {
+      id: string;
+      name: string;
+      type: string;
+      fields: unknown;
+      thumbnail?: string | null;
+    }[];
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      thumbnail: r.thumbnail ?? undefined,
+      fields: r.fields as TemplateSchema["fields"],
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function saveDbTemplate(schema: TemplateSchema, brand: string): Promise<void> {
+  await fetch("/api/creative/templates", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...schema, brandId: brand }),
+  });
+}
+
+async function deleteDbTemplate(id: string): Promise<void> {
+  await fetch(`/api/creative/templates/${id}`, { method: "DELETE" });
+}
 
 const TYPE_COLORS: Record<string, string> = {
   pdp: "bg-violet-100 text-violet-700",
@@ -384,48 +419,60 @@ export default function TemplateSelector({
   onNext,
 }: TemplateSelectorProps) {
   const [showModal, setShowModal] = useState(false);
-  const [customTemplates, setCustomTemplates] = useState<TemplateSchema[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      return raw ? (JSON.parse(raw) as TemplateSchema[]) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [customTemplates, setCustomTemplates] = useState<TemplateSchema[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const brand = "winespies";
 
-  // Sync to localStorage whenever customTemplates changes
-  useEffect(() => {
-    try {
-      localStorage.setItem(LS_KEY, JSON.stringify(customTemplates));
-    } catch {}
-  }, [customTemplates]);
+  // Load custom templates — DB first, localStorage fallback
+  const loadTemplates = useCallback(async () => {
+    setLoadingTemplates(true);
+    const dbTemplates = await fetchDbTemplates(brand);
+    if (dbTemplates.length > 0) {
+      setCustomTemplates(dbTemplates);
+      // Keep localStorage in sync
+      try { localStorage.setItem(LS_KEY, JSON.stringify(dbTemplates)); } catch {}
+    } else {
+      // Fallback: localStorage (works when DATABASE_URL not set)
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (raw) setCustomTemplates(JSON.parse(raw) as TemplateSchema[]);
+      } catch {}
+    }
+    setLoadingTemplates(false);
+  }, [brand]);
+
+  useEffect(() => { loadTemplates(); }, [loadTemplates]);
 
   const builtInTemplates = Object.values(TEMPLATE_SCHEMAS);
   const allTemplates = [...builtInTemplates, ...customTemplates];
   const totalAds = selectedWineCount * selectedTemplateIds.length;
 
-  const handleSave = (schema: TemplateSchema) => {
+  const handleSave = async (schema: TemplateSchema) => {
+    // Save to DB (best effort) + update local state
+    await saveDbTemplate(schema, brand).catch(() => {});
     setCustomTemplates((prev) => {
-      // Replace if ID already exists, otherwise append
       const exists = prev.findIndex((t) => t.id === schema.id);
-      if (exists >= 0) {
-        const next = [...prev];
-        next[exists] = schema;
-        return next;
-      }
-      return [...prev, schema];
+      const next = exists >= 0
+        ? prev.map((t, i) => i === exists ? schema : t)
+        : [...prev, schema];
+      try { localStorage.setItem(LS_KEY, JSON.stringify(next)); } catch {}
+      return next;
     });
     setShowModal(false);
-    // Auto-select the newly added template
     onToggle(schema.id);
   };
 
-  const handleDelete = (id: string) => {
-    setCustomTemplates((prev) => prev.filter((t) => t.id !== id));
+  const handleDelete = async (id: string) => {
+    await deleteDbTemplate(id).catch(() => {});
+    setCustomTemplates((prev) => {
+      const next = prev.filter((t) => t.id !== id);
+      try { localStorage.setItem(LS_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
   };
 
   const customIds = new Set(customTemplates.map((t) => t.id));
+  void loadingTemplates; // used indirectly via allTemplates
 
   return (
     <>

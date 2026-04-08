@@ -49,6 +49,29 @@ async function generateCopy(
   return data as { headline: string; primary_text: string; description: string };
 }
 
+async function saveAdToDb(ad: GeneratedAd, brand = "winespies"): Promise<void> {
+  try {
+    await fetch("/api/creative/ads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        brandId: brand,
+        saleId: ad.context.sale_id,
+        templateId: ad.template.id,
+        wineName: ad.context.display_name,
+        templateName: ad.template.name,
+        headline: ad.headline,
+        primaryText: ad.primary_text,
+        description: ad.description,
+        imageUrl: ad.image_url,
+        saleUrl: ad.sale_url,
+      }),
+    });
+  } catch {
+    // Non-fatal — generation still succeeds without DB save
+  }
+}
+
 async function generateImage(
   context: WineAdContext,
   template: TemplateSchema
@@ -178,6 +201,15 @@ export function useGenerator(
           updateAdField(key, {
             image_url: imageUrl,
             status: "complete",
+          });
+
+          // Auto-save to DB (best effort, non-blocking)
+          setAds((current) => {
+            const saved = current.find((a) => a.mapping_key === key);
+            if (saved) {
+              saveAdToDb({ ...saved, image_url: imageUrl, status: "complete" });
+            }
+            return current;
           });
         } catch (err) {
           updateAdField(key, {
