@@ -25,6 +25,8 @@ export default function BrandAssetsPanel({
 }) {
   const [assets, setAssets] = useState<BrandAssetItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string | undefined>();
   const [storageMode, setStorageMode] = useState<"database" | "filesystem" | null>(null);
   const [filter, setFilter] = useState<FilterValue>(ALL_FILTER);
@@ -40,14 +42,19 @@ export default function BrandAssetsPanel({
 
   const fetchAssets = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetch(`/api/brand-assets?brand=${BRAND_ID}`);
       const data = await res.json();
+      if (!res.ok) {
+        setLoadError(data.error ?? `HTTP ${res.status}`);
+        return;
+      }
       setAssets(data.assets ?? []);
       setUpdatedAt(data.updatedAt);
       setStorageMode(data.storageMode ?? null);
-    } catch {
-      // ignore
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Failed to load assets");
     } finally {
       setLoading(false);
     }
@@ -69,6 +76,7 @@ export default function BrandAssetsPanel({
   const handleUpload = async () => {
     if (!uploadFile) return;
     setUploading(true);
+    setUploadError(null);
     try {
       const fd = new FormData();
       fd.append("image", uploadFile);
@@ -76,6 +84,7 @@ export default function BrandAssetsPanel({
       fd.append("label", uploadLabel.trim() || uploadFile.name.replace(/\.[^.]+$/, ""));
       fd.append("category", uploadCategory);
       const res = await fetch("/api/brand-assets/upload", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setUploadFile(null);
         setUploadPreview(undefined);
@@ -83,9 +92,11 @@ export default function BrandAssetsPanel({
         setUploadCategory("logo");
         fetchAssets();
         onChanged?.();
+      } else {
+        setUploadError(data.error ?? `Upload failed (HTTP ${res.status})`);
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
     }
@@ -127,6 +138,13 @@ export default function BrandAssetsPanel({
         {storageMode === "database" && (
           <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2.5 text-xs text-green-800">
             <span className="font-semibold">Postgres storage</span> — assets are stored in the database and will survive deployments.
+          </div>
+        )}
+
+        {/* Load error */}
+        {loadError && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2.5 text-xs text-red-700">
+            <span className="font-semibold">Error loading assets:</span> {loadError}
           </div>
         )}
 
@@ -203,6 +221,12 @@ export default function BrandAssetsPanel({
             </div>
           </div>
         </div>
+
+        {uploadError && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2.5 text-xs text-red-700">
+            <span className="font-semibold">Upload failed:</span> {uploadError}
+          </div>
+        )}
 
         {/* Category filter pills */}
         <div className="flex flex-wrap gap-1.5">
