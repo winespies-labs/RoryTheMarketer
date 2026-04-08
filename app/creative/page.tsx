@@ -2,24 +2,34 @@ import Link from "next/link";
 
 const sections = [
   {
+    title: "PDP Builder",
+    description: "Generate ads from today's live wine feed. Scale production with feed-accurate templates.",
+    href: "/creative/ad-builder/pdp",
+    badge: "New",
+  },
+  {
     title: "Briefs",
     description: "Generate ad creative briefs with brand context and persona targeting.",
     href: "/briefs",
+    badge: null,
   },
   {
     title: "Wines",
     description: "Manage wine products and generate ad copy for your wine portfolio.",
     href: "/wines",
+    badge: null,
   },
   {
     title: "Ad Builder",
     description: "Build ads step-by-step with templates, images, and brand assets.",
     href: "/ad-builder",
+    badge: null,
   },
   {
     title: "IG Research",
     description: "Research Instagram content and trends for creative inspiration.",
     href: "/instagram-research",
+    badge: null,
   },
 ];
 
@@ -35,8 +45,13 @@ export default function CreativeHub() {
           <Link
             key={s.href}
             href={s.href}
-            className="group rounded-xl border border-border bg-surface p-6 hover:border-accent transition-colors"
+            className="group rounded-xl border border-border bg-surface p-6 hover:border-accent transition-colors relative"
           >
+            {s.badge && (
+              <span className="absolute top-4 right-4 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-accent text-white">
+                {s.badge}
+              </span>
+            )}
             <h2 className="font-semibold mb-1 group-hover:text-accent transition-colors">
               {s.title}
             </h2>
