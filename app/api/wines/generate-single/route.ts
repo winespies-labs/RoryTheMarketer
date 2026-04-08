@@ -10,7 +10,7 @@ import {
   getReferenceAdStyleImagePath,
 } from "@/lib/reference-ads";
 import { generateAdImage, wineDetailsForReferenceTemplate } from "@/lib/gemini";
-import { readBrandAssets, getAssetsDir } from "@/lib/brand-assets-storage";
+import { readBrandAssets, getBrandAssetImageBytes } from "@/lib/brand-assets-storage";
 import type { AspectRatio, AdType } from "@/lib/ad-builder";
 
 export const maxDuration = 120;
@@ -246,15 +246,24 @@ export async function POST(req: NextRequest) {
         : null;
 
       // Load brand assets (logo, badges) to pass as separate high-fidelity inputs
-      const assetsData = readBrandAssets(brandId);
+      const assetsData = await readBrandAssets(brandId);
       const overlayAssets = assetsData.assets.filter(
         (a) => a.category === "logo" || a.category === "badge"
       );
-      const brandAssets = overlayAssets.map((a) => {
-        const filePath = path.join(getAssetsDir(brandId), a.filename);
-        const buf = fs.readFileSync(filePath);
-        return { base64: buf.toString("base64"), mimeType: getMimeType(a.filename), label: a.label };
-      });
+      const brandAssetParts = await Promise.all(
+        overlayAssets.map(async (a) => {
+          const bytes = await getBrandAssetImageBytes(brandId, a);
+          if (!bytes) return null;
+          return {
+            base64: bytes.buffer.toString("base64"),
+            mimeType: bytes.mime,
+            label: a.label,
+          };
+        })
+      );
+      const brandAssets = brandAssetParts.filter(
+        (x): x is NonNullable<typeof x> => x !== null
+      );
 
       const mergedDetails = wineDetailsForReferenceTemplate(
         wineDetails,

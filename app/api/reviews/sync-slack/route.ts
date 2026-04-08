@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBrand } from "@/lib/brands";
-import { fetchAllChannelMessages } from "@/lib/slack";
-import {
-  mergeReviews,
-  parseSlackMessage,
-} from "@/lib/reviews-storage";
+import { runSlackReviewsSync } from "@/lib/reviews-slack-sync";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
@@ -31,19 +27,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const messages = await fetchAllChannelMessages(channelId);
-    // Only keep bot messages (Trustpilot and App Store Review Bot are Slack apps)
-    const botMessages = messages.filter((msg) => !!msg.bot_id);
-    const incoming = botMessages.map((msg) => parseSlackMessage(msg));
-    const { added, total } = mergeReviews(brandId, incoming, {
-      slackChannelId: channelId,
-    });
+    const { added, total, messageCount } = await runSlackReviewsSync(
+      brandId,
+      channelId
+    );
 
     return NextResponse.json({
       ok: true,
       added,
       total,
-      messageCount: messages.length,
+      messageCount,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Sync failed";

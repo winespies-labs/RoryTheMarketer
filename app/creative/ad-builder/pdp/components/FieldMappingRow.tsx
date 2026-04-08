@@ -69,7 +69,9 @@ export default function FieldMappingRow({
   };
 
   const statusNote =
-    field.status === "missing_optional"
+    overrideValue != null && overrideValue !== ""
+      ? overrideValue
+      : field.status === "missing_optional"
       ? `No ${field.label.toLowerCase()} — element will be hidden`
       : field.status === "missing_required"
       ? `Required — blocks generation`

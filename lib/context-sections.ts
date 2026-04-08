@@ -1,4 +1,4 @@
-export type SectionType = "markdown" | "meta-comments" | "reviews" | "brand-assets";
+export type SectionType = "markdown" | "meta-comments" | "brand-assets";
 
 export interface SectionDef {
   id: string;
@@ -38,6 +38,7 @@ export const CATEGORIES: CategoryDef[] = [
       { id: "ab-test-learnings", label: "A/B Test Learnings", type: "markdown", file: "ab-test-learnings.md" },
       { id: "video-creative", label: "Video Creative Guidelines", type: "markdown", file: "video-creative.md" },
       { id: "video-brief", label: "Video Brief Template", type: "markdown", file: "video_brief.md" },
+      { id: "founder-brief", label: "Founder Brief", type: "markdown", file: "founder-brief.md" },
     ],
   },
   {
@@ -48,7 +49,6 @@ export const CATEGORIES: CategoryDef[] = [
     sections: [
       { id: "brand-assets", label: "Brand Assets", type: "brand-assets" },
       { id: "meta-comments", label: "Meta Ad Comments", type: "meta-comments" },
-      { id: "reviews", label: "Reviews (Slack & upload)", type: "reviews" },
     ],
   },
 ];

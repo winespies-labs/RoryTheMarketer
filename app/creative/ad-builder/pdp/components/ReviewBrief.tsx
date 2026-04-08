@@ -8,11 +8,12 @@ import FieldMappingRow from "./FieldMappingRow";
 
 function TemplateMappingAccordion({
   mapping,
-  overrides,
+  wineOverrides,
   onOverride,
 }: {
   mapping: TemplateMappingResult;
-  overrides: Record<string, string>;
+  /** Wine-level overrides — same for every template of this wine */
+  wineOverrides: Record<string, string>;
   onOverride: (fieldKey: string, value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -82,7 +83,7 @@ function TemplateMappingAccordion({
                   field={field}
                   mappingKey={mapping.mapping_key}
                   onOverride={onOverride}
-                  overrideValue={overrides[field.field]}
+                  overrideValue={wineOverrides[field.field]}
                 />
               ))}
             </tbody>
@@ -96,15 +97,18 @@ function TemplateMappingAccordion({
 // ── Wine section accordion ──────────────────────────────────────────────────
 
 function WineSection({
+  saleId,
   displayName,
   mappings,
-  overrides,
+  wineOverrides,
   onOverride,
 }: {
+  saleId: number;
   displayName: string;
   mappings: TemplateMappingResult[];
-  overrides: Record<string, Record<string, string>>;
-  onOverride: (mappingKey: string, fieldKey: string, value: string) => void;
+  /** Wine-level overrides keyed by fieldKey */
+  wineOverrides: Record<string, string>;
+  onOverride: (saleId: number, fieldKey: string, value: string) => void;
 }) {
   const [open, setOpen] = useState(true);
   const allReady = mappings.every((m) => m.ready);
@@ -159,9 +163,9 @@ function WineSection({
             <TemplateMappingAccordion
               key={mapping.mapping_key}
               mapping={mapping}
-              overrides={overrides[mapping.mapping_key] ?? {}}
+              wineOverrides={wineOverrides}
               onOverride={(fieldKey, value) =>
-                onOverride(mapping.mapping_key, fieldKey, value)
+                onOverride(saleId, fieldKey, value)
               }
             />
           ))}
@@ -175,8 +179,8 @@ function WineSection({
 
 interface ReviewBriefProps {
   batch: BatchMappingResult;
-  overrides: Record<string, Record<string, string>>;
-  onOverride: (mappingKey: string, fieldKey: string, value: string) => void;
+  overrides: Record<number, Record<string, string>>;
+  onOverride: (saleId: number, fieldKey: string, value: string) => void;
   onBack: () => void;
   onGenerate: () => void;
 }
@@ -274,9 +278,10 @@ export default function ReviewBrief({
         {Array.from(byWine.entries()).map(([saleId, mappings]) => (
           <WineSection
             key={saleId}
+            saleId={saleId}
             displayName={mappings[0].context.display_name}
             mappings={mappings}
-            overrides={overrides}
+            wineOverrides={overrides[saleId] ?? {}}
             onOverride={onOverride}
           />
         ))}

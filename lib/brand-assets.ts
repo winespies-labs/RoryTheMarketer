@@ -16,9 +16,12 @@ export interface BrandAsset {
   id: string;
   label: string;
   category: AssetCategory;
+  /** Disk filename when stored under data/{brandId}/brand-assets/; empty when DB-only */
   filename: string;
   originalName?: string;
   uploadedAt: string;
+  /** True when image bytes are in Postgres (or legacy disk file exists) */
+  hasStoredImage?: boolean;
 }
 
 export interface BrandAssetsData {

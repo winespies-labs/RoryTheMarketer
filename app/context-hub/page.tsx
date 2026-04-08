@@ -5,7 +5,6 @@ import { CATEGORIES, getSectionDef } from "@/lib/context-sections";
 import Sidebar from "./components/Sidebar";
 import MarkdownEditor from "./components/MarkdownEditor";
 import MetaCommentsPanel from "./components/MetaCommentsPanel";
-import ReviewsPanel from "./components/ReviewsPanel";
 import BrandAssetsPanel from "./components/BrandAssetsPanel";
 
 const BRAND_ID = "winespies";
@@ -44,8 +43,6 @@ export default function ContextHubPage() {
         );
       case "meta-comments":
         return <MetaCommentsPanel />;
-      case "reviews":
-        return <ReviewsPanel onChanged={fetchStatus} />;
       case "brand-assets":
         return <BrandAssetsPanel onChanged={fetchStatus} />;
       default:

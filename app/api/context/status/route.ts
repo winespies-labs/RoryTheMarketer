@@ -4,7 +4,6 @@ import path from "path";
 import { getBrand, getBrandContextDir } from "@/lib/brands";
 import { ALL_SECTIONS } from "@/lib/context-sections";
 import { readMetaComments } from "@/lib/meta-comments-storage";
-import { readReviews } from "@/lib/reviews-storage";
 
 export async function GET(req: NextRequest) {
   const brand = req.nextUrl.searchParams.get("brand");
@@ -37,11 +36,6 @@ export async function GET(req: NextRequest) {
       case "meta-comments": {
         const comments = readMetaComments(brand);
         status[section.id] = comments !== null && comments.comments.length > 0;
-        break;
-      }
-      case "reviews": {
-        const reviews = readReviews(brand);
-        status[section.id] = reviews.reviews.length > 0;
         break;
       }
     }

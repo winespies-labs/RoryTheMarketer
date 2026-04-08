@@ -96,7 +96,8 @@ Wine data → template variables → filled HTML → Puppeteer screenshot. Templ
 
 | Route | Purpose |
 |-------|---------|
-| `/context-hub` | Brand DNA — voice, personas, USPs, assets, reviews, comment themes |
+| `/context-hub` | Brand DNA — voice, personas, USPs, assets, Meta comments |
+| `/reviews` | Customer reviews — Slack sync, upload, search, topics, stars (Postgres when `DATABASE_URL` set) |
 | `/copywriting/*` | Editor, library, drills (7 techniques × 14 exercises), swipe analyzer |
 | `/copywriter` | Wine-specific copy generation |
 | `/ad-builder` | Multi-step ad wizard (6 ad types, 4 aspect ratios, Gemini/FAL image gen) |

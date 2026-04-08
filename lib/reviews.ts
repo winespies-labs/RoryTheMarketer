@@ -12,7 +12,22 @@ export interface Review {
   createdAt: string;
   /** Slack message ts — used to dedupe when syncing from Slack. */
   slackMessageTs?: string;
+  /** Saved as a favorite in Context Hub. */
+  starred?: boolean;
+  /** User-assigned topics for filtering (e.g. Locker, Customer service). */
+  topics?: string[];
 }
+
+/** Suggested labels when tagging reviews (add more anytime in code). */
+export const REVIEW_TOPIC_PRESETS: readonly string[] = [
+  "Locker",
+  "Customer service",
+  "Shipping & delivery",
+  "Wine quality",
+  "Value / pricing",
+  "Website / app",
+  "Returns",
+];
 
 export interface ReviewsData {
   updatedAt: string;
@@ -29,6 +44,8 @@ export interface ReviewSnippet {
   title?: string;
   content: string;
   source?: ReviewSource;
+  starred?: boolean;
+  topics?: string[];
 }
 
 /** For upload: minimal shape per review. */

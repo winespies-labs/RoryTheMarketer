@@ -301,16 +301,36 @@ function AddTemplateModal({
 
 // ── Template card ─────────────────────────────────────────────────────────────
 
-function TemplatePlaceholder({ name, type }: { name: string; type: string }) {
-  const color = TYPE_COLORS[type] ?? "bg-background text-muted";
-  const initial = name.charAt(0).toUpperCase();
+function TemplatePlaceholder({ name }: { name: string }) {
   return (
-    <div className={`w-full h-full flex flex-col items-center justify-center gap-2 ${color} bg-opacity-20`}>
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold ${color}`}>
-        {initial}
+    <div className="w-full h-full bg-gray-900 flex flex-col p-3 gap-1.5 relative">
+      {/* Logo zone */}
+      <div className="h-2 w-10 rounded-sm bg-white/20" />
+
+      {/* Bottle silhouette zone */}
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-3 h-10 bg-white/15 rounded-t-full" />
+          <div className="w-6 h-12 bg-white/20 rounded-sm" />
+        </div>
       </div>
-      <div className="text-[11px] font-medium text-center px-3 leading-snug opacity-70">
-        {name}
+
+      {/* Price badge */}
+      <div className="flex items-center gap-1.5">
+        <div className="h-5 px-2 rounded bg-white/20 flex items-center">
+          <div className="h-1.5 w-8 rounded-sm bg-white/50" />
+        </div>
+      </div>
+
+      {/* Text zones */}
+      <div className="flex flex-col gap-1">
+        <div className="h-2 w-3/4 rounded-sm bg-white/30" />
+        <div className="h-1.5 w-1/2 rounded-sm bg-white/20" />
+      </div>
+
+      {/* Template name overlay */}
+      <div className="absolute bottom-0 left-0 right-0 px-3 py-1.5 bg-black/50">
+        <div className="text-[10px] text-white/60 font-medium truncate">{name}</div>
       </div>
     </div>
   );
@@ -368,7 +388,7 @@ function TemplateCard({
               onError={() => setImgError(true)}
             />
           ) : (
-            <TemplatePlaceholder name={template.name} type={template.type} />
+            <TemplatePlaceholder name={template.name} />
           )}
         </div>
 

@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "brand required" }, { status: 400 });
   }
 
-  const data = readBrandAssets(brandId);
+  const data = await readBrandAssets(brandId);
   let assets = data.assets;
   if (category) {
     assets = assets.filter((a) => a.category === category);
@@ -28,7 +28,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "brand and id required" }, { status: 400 });
   }
 
-  const ok = deleteBrandAsset(brandId, id);
+  const ok = await deleteBrandAsset(brandId, id);
   if (!ok) {
     return NextResponse.json({ error: "Asset not found" }, { status: 404 });
   }

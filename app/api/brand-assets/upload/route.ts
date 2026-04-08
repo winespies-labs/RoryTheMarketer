@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { getBrand } from "@/lib/brands";
-import { saveBrandAssetFile, addBrandAsset } from "@/lib/brand-assets-storage";
+import { addBrandAsset } from "@/lib/brand-assets-storage";
 import type { AssetCategory } from "@/lib/brand-assets";
 import { ASSET_CATEGORIES } from "@/lib/brand-assets";
 
@@ -35,12 +35,11 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await imageFile.arrayBuffer());
-    const filename = saveBrandAssetFile(brandId, buffer, imageFile.name);
-    const asset = addBrandAsset(brandId, {
+    const asset = await addBrandAsset(brandId, {
       label: label.trim() || imageFile.name.replace(/\.[^.]+$/, ""),
       category,
-      filename,
       originalName: imageFile.name,
+      file: { buffer, originalFilename: imageFile.name },
     });
 
     return NextResponse.json({ asset });

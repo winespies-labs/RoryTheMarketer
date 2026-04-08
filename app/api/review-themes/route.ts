@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getBrand } from "@/lib/brands";
-import { readReviews } from "@/lib/reviews-storage";
+import { loadReviews } from "@/lib/reviews-storage";
 import { readReviewThemes, writeReviewThemes } from "@/lib/review-themes-storage";
 
 const client = new Anthropic();
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid brand" }, { status: 400 });
   }
 
-  const { reviews } = readReviews(brandId);
+  const { reviews } = await loadReviews(brandId);
   if (!reviews.length) {
     return NextResponse.json({ error: "No reviews to summarize" }, { status: 400 });
   }

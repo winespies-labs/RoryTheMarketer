@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
   const reviewSnippetsBlock =
     includeReviewSnippets
-      ? formatReviewSnippetsForPrompt(brandId, {
+      ? await formatReviewSnippetsForPrompt(brandId, {
           limit: 12,
           maxCharsPerReview: 200,
         })

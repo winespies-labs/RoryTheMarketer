@@ -16,9 +16,9 @@ export function useBatchMapping(
   selectedTemplateIds: string[],
   contexts: WineAdContext[]
 ) {
-  // { mappingKey: { fieldKey: overrideValue } }
+  // { saleId: { fieldKey: overrideValue } } — per-wine, not per wine×template
   const [overrides, setOverrides] = useState<
-    Record<string, Record<string, string>>
+    Record<number, Record<string, string>>
   >({});
 
   // Compute batch when selections or contexts change
@@ -33,11 +33,11 @@ export function useBatchMapping(
   }, [selectedSaleIds, selectedTemplateIds, contexts]);
 
   const setOverride = useCallback(
-    (mappingKey: string, fieldKey: string, value: string) => {
+    (saleId: number, fieldKey: string, value: string) => {
       setOverrides((prev) => ({
         ...prev,
-        [mappingKey]: {
-          ...(prev[mappingKey] ?? {}),
+        [saleId]: {
+          ...(prev[saleId] ?? {}),
           [fieldKey]: value,
         },
       }));

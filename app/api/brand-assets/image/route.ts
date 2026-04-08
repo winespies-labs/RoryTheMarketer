@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
-import fs from "fs";
 import { getBrand } from "@/lib/brands";
-import { getBrandAssetById, getAssetsDir } from "@/lib/brand-assets-storage";
+import { getBrandAssetById, getBrandAssetImageBytes } from "@/lib/brand-assets-storage";
 
 export async function GET(req: NextRequest) {
   const brandId = req.nextUrl.searchParams.get("brand");
@@ -12,30 +10,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "brand and id required" }, { status: 400 });
   }
 
-  const asset = getBrandAssetById(brandId, id);
+  const asset = await getBrandAssetById(brandId, id);
   if (!asset) {
     return new NextResponse("Not found", { status: 404 });
   }
 
-  const imagePath = path.join(getAssetsDir(brandId), asset.filename);
-  if (!fs.existsSync(imagePath)) {
+  const resolved = await getBrandAssetImageBytes(brandId, asset);
+  if (!resolved) {
     return new NextResponse("Not found", { status: 404 });
   }
 
-  const ext = path.extname(imagePath).toLowerCase();
-  const mimeMap: Record<string, string> = {
-    ".png": "image/png",
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".webp": "image/webp",
-    ".gif": "image/gif",
-  };
-  const contentType = mimeMap[ext] || "image/png";
-  const buffer = fs.readFileSync(imagePath);
-
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(resolved.buffer), {
     headers: {
-      "Content-Type": contentType,
+      "Content-Type": resolved.mime,
       "Cache-Control": "public, max-age=3600",
     },
   });

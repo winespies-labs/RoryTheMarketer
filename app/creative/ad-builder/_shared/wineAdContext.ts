@@ -181,7 +181,6 @@ export const TEMPLATE_SCHEMAS: Record<string, TemplateSchema> = {
     id: "cult-dark",
     name: "Cult Dark",
     type: "pdp",
-    thumbnail: "/templates/cult-dark/thumbnail.png",
     fields: {
       wine_display_name: {
         source: "feed",
@@ -278,6 +277,21 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+function parseScoreFromText(text: string): {
+  has_score: boolean;
+  score: number | null;
+  score_label: string | null;
+} {
+  const match = text.match(
+    /(\d{2,3})\s*(?:pts?\.?|points?)\s*[-–—]\s*([A-Za-z][^\n,\.]{2,40})/i
+  );
+  if (!match) return { has_score: false, score: null, score_label: null };
+  const score = parseInt(match[1], 10);
+  if (score < 80 || score > 100)
+    return { has_score: false, score: null, score_label: null };
+  return { has_score: true, score, score_label: match[2].trim() };
+}
+
 function parseScore(awardName: string): {
   has_score: boolean;
   score: number | null;
@@ -327,7 +341,11 @@ function mapClassification(raw: string): VarietalClassification {
  * Call at feed load time — not at generation time.
  */
 export function resolveWineAdContext(sale: RawSale): WineAdContext {
-  const { has_score, score, score_label } = parseScore(sale.award_name ?? "");
+  let scoreResult = parseScore(sale.award_name ?? "");
+  if (!scoreResult.has_score) {
+    scoreResult = parseScoreFromText(stripHtml(sale.brief ?? ""));
+  }
+  const { has_score, score, score_label } = scoreResult;
 
   const retailCents = sale.retail?.cents ?? 0;
   const saleCents = sale.price?.cents ?? 0;
@@ -364,7 +382,7 @@ export function resolveWineAdContext(sale: RawSale): WineAdContext {
   return {
     sale_id: sale.id,
     codename: sale.codename,
-    sale_url: `https://winespies.com/sales/${sale.codename}`,
+    sale_url: `https://winespies.com/sales/${encodeURIComponent(sale.codename)}`,
     display_name: displayName,
     producer,
     wine_name: wineName,
@@ -546,10 +564,23 @@ export function buildCopyPrompt(
 ): string {
   const { tone = "irreverent", overrides = {} } = options;
 
-  const scoreSection =
-    context.has_score && context.score != null
-      ? `- Critical Score: ${context.score} points from ${context.score_label}`
-      : "";
+  const effectiveScore =
+    overrides["score_badge"] != null && overrides["score_badge"] !== ""
+      ? overrides["score_badge"]
+      : context.has_score && context.score != null
+      ? String(context.score)
+      : null;
+  const effectiveLabel =
+    overrides["score_label"] != null && overrides["score_label"] !== ""
+      ? overrides["score_label"]
+      : context.has_score
+      ? context.score_label
+      : null;
+  const effectiveHasScore = effectiveScore != null && effectiveScore !== "";
+
+  const scoreSection = effectiveHasScore
+    ? `- Critical Score: ${effectiveScore} points from ${effectiveLabel}`
+    : "";
 
   const vineyard = context.vineyard ? `- Vineyard: ${context.vineyard}` : "";
   const abv = context.abv != null ? `- ABV: ${context.abv}%` : "";
@@ -590,8 +621,8 @@ Rules:
 - Never invent scores or ratings not explicitly provided
 - Sale price must be accurate: ${context.sale_price}
 ${
-  context.has_score
-    ? `- You MAY reference the ${context.score}-point score from ${context.score_label}`
+  effectiveHasScore
+    ? `- You MAY reference the ${effectiveScore}-point score from ${effectiveLabel}`
     : "- Do NOT mention any score or rating — none exists for this wine"
 }
 - Headline: under 40 characters

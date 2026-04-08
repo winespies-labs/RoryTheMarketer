@@ -67,6 +67,7 @@ const NAV_GROUPS: NavGroup[] = [
 
 const TOP_LINKS: NavItem[] = [
   { label: "Home", href: "/" },
+  { label: "Reviews", href: "/reviews" },
 ];
 
 const BOTTOM_LINKS: NavItem[] = [

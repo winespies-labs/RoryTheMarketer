@@ -135,9 +135,12 @@ Scrape Instagram via Apify — search by keyword, transcribe video content, anal
 ### Reviews (Phase 2)
 | Method | Route | Purpose |
 |--------|-------|---------|
-| GET | `/api/reviews` | Get/search reviews |
+| GET | `/api/reviews` | List/search reviews (`q`, `topic`, `starred`, `limit`, `offset`) |
+| GET | `/api/reviews/config` | UI hints: whether `SLACK_REVIEWS_CHANNEL_ID` is set server-side |
+| PATCH | `/api/reviews/[id]` | Star or set `topics[]` for a review |
 | POST | `/api/reviews/upload` | Upload reviews CSV |
 | POST | `/api/reviews/sync-slack` | Sync from Slack channel |
+| GET | `/api/cron/reviews-sync` | Scheduled HTTP: Slack → reviews JSON (`Authorization: Bearer CRON_SECRET`; `SLACK_*` on server) |
 | POST | `/api/review-themes` | Generate AI themes from reviews |
 
 ### Meta Ads Manager (Phase 6)
@@ -262,16 +265,16 @@ Pattern: brand context bundle → system prompt, user input/data → user prompt
 - Instagram research via Apify
 - Swipe file library + inspiration center
 - Writeups system
-- Review upload (CSV) and Slack sync
+- Review upload (CSV) and Slack sync (`/reviews` page; stored in Postgres when `DATABASE_URL` is set, else `data/{brand}/reviews.json`)
 
 ### Partially Built / Needs Work
 - **Trustpilot API sync** — Route and types exist but actual Trustpilot API client (`lib/trustpilot.ts`) may not be fully implemented; reviews currently come from CSV upload and Slack sync
-- **Scheduled syncs (Phase 5)** — No Vercel Cron config found; sync routes exist but must be triggered manually
+- **Scheduled syncs (Phase 5)** — Reviews: in-process daily job via `instrumentation.ts` + `lib/reviews-slack-cron.ts` when using `next start` with Slack env vars; optional `GET /api/cron/reviews-sync` for external triggers; other syncs (Meta, etc.) are still manual unless you add jobs
 - **Brief injection of themes** — Review themes and comment themes are generated and stored, but the brief routes may not yet have `includeReviewThemes`/`includeCommentThemes` toggles wired into the UI
 - **Second brand (`archival`)** — Placeholder directory exists but no voice/personas/USPs files
 
 ### Not Built
-- **Vercel Cron for scheduled syncs** — No `vercel.json` cron config
+- **Scheduled syncs for non-review data** — Meta Ads sync and similar are not wired to in-app or HTTP cron in-repo
 - **Peabot (Phase 6D)** — Q&A chat over synced ad data (planned in ads-manager-plan.md)
 - **AI Suggestions (Phase 6E)** — Daily/weekly AI-generated optimization suggestions with Apply/Dismiss
 - **Auth/access control (Phase 5.4)** — No authentication; all routes are open

@@ -1,34 +1,46 @@
-import fs from "fs";
-import path from "path";
 import { nanoid } from "nanoid";
-import { getBrandDataDir, ensureBrandDataDir } from "@/lib/brands";
+import { useDatabase } from "@/lib/database";
+import {
+  importJsonToDbIfEmpty,
+  listReviewsFromDb,
+  loadReviewsFromDb,
+  mergeReviewsDb,
+  updateReviewMetadataDb,
+  type ListReviewsFilters,
+} from "@/lib/reviews-db";
+import { readReviewsFile, writeReviewsFile } from "@/lib/reviews-file";
 import {
   type Review,
   type ReviewsData,
   type ReviewSource,
-  REVIEWS_FILENAME,
 } from "@/lib/reviews";
 import type { SlackMessage } from "@/lib/slack";
 
-function getFilePath(brandId: string): string {
-  return path.join(getBrandDataDir(brandId), REVIEWS_FILENAME);
-}
-
-function defaultData(): ReviewsData {
-  return { updatedAt: new Date().toISOString(), reviews: [] };
-}
+export type { ListReviewsFilters };
 
 /**
- * Markdown section of sample reviews for LLM prompts (empty string if none).
- * Caps count and length to keep context bounded.
+ * Load all reviews + meta (file or Postgres). Prefer DATABASE_URL when set;
+ * one-time import from `data/{brand}/reviews.json` if the DB table is empty.
  */
-export function formatReviewSnippetsForPrompt(
+export async function loadReviews(brandId: string): Promise<ReviewsData> {
+  if (useDatabase()) {
+    await importJsonToDbIfEmpty(brandId);
+    return loadReviewsFromDb(brandId);
+  }
+  return readReviewsFile(brandId);
+}
+
+export async function formatReviewSnippetsForPrompt(
   brandId: string,
   options?: { limit?: number; maxCharsPerReview?: number }
-): string {
+): Promise<string> {
   const limit = options?.limit ?? 12;
   const maxChars = options?.maxCharsPerReview ?? 200;
-  const { reviews } = readReviews(brandId);
+  const { reviews: raw } = await loadReviews(brandId);
+  const reviews = [...raw].sort((a, b) => {
+    if (!!a.starred !== !!b.starred) return a.starred ? -1 : 1;
+    return 0;
+  });
   const lines = reviews.slice(0, limit).map((r) => {
     const titlePrefix = r.title ? `"${r.title}" ` : "";
     const body =
@@ -43,43 +55,12 @@ export function formatReviewSnippetsForPrompt(
   );
 }
 
-export function readReviews(brandId: string): ReviewsData {
-  const filePath = getFilePath(brandId);
-  if (!fs.existsSync(filePath)) return defaultData();
-  const raw = fs.readFileSync(filePath, "utf-8");
-  try {
-    const data = JSON.parse(raw) as ReviewsData;
-    if (!Array.isArray(data?.reviews)) return defaultData();
-    return {
-      updatedAt: data.updatedAt ?? new Date().toISOString(),
-      slackChannelId: data.slackChannelId,
-      reviews: data.reviews,
-    };
-  } catch {
-    return defaultData();
-  }
-}
-
-export function writeReviews(brandId: string, data: ReviewsData): void {
-  ensureBrandDataDir(brandId);
-  const next: ReviewsData = {
-    ...data,
-    updatedAt: new Date().toISOString(),
-  };
-  fs.writeFileSync(
-    getFilePath(brandId),
-    JSON.stringify(next, null, 2),
-    "utf-8"
-  );
-}
-
-/** Merge incoming reviews: by id or slackMessageTs, avoid duplicates; new ones get ids. */
-export function mergeReviews(
+function mergeReviewsFile(
   brandId: string,
   incoming: Omit<Review, "id">[],
   options?: { slackChannelId?: string }
 ): { added: number; total: number } {
-  const data = readReviews(brandId);
+  const data = readReviewsFile(brandId);
   const existingByTs = new Set(
     data.reviews.map((r) => r.slackMessageTs).filter(Boolean)
   );
@@ -101,32 +82,149 @@ export function mergeReviews(
     added++;
   }
   if (options?.slackChannelId) data.slackChannelId = options.slackChannelId;
-  writeReviews(brandId, data);
+  writeReviewsFile(brandId, data);
   return { added, total: data.reviews.length };
 }
 
-/** Infer source from text (e.g. "Trustpilot" or "App Store" in message). */
+export async function mergeReviews(
+  brandId: string,
+  incoming: Omit<Review, "id">[],
+  options?: { slackChannelId?: string }
+): Promise<{ added: number; total: number }> {
+  if (useDatabase()) {
+    await importJsonToDbIfEmpty(brandId);
+    return mergeReviewsDb(brandId, incoming, options);
+  }
+  return mergeReviewsFile(brandId, incoming, options);
+}
+
+function normalizeTopicList(topics: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of topics) {
+    const s = t.trim();
+    if (!s) continue;
+    const key = s.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
+  }
+  return out;
+}
+
+function updateReviewMetadataFile(
+  brandId: string,
+  reviewId: string,
+  patch: { starred?: boolean; topics?: string[] }
+): Review | null {
+  const data = readReviewsFile(brandId);
+  const idx = data.reviews.findIndex((r) => r.id === reviewId);
+  if (idx === -1) return null;
+  const cur = data.reviews[idx];
+  const next: Review = { ...cur };
+  if (patch.starred !== undefined) next.starred = patch.starred;
+  if (patch.topics !== undefined) next.topics = normalizeTopicList(patch.topics);
+  data.reviews[idx] = next;
+  writeReviewsFile(brandId, data);
+  return next;
+}
+
+export async function updateReviewMetadata(
+  brandId: string,
+  reviewId: string,
+  patch: { starred?: boolean; topics?: string[] }
+): Promise<Review | null> {
+  if (useDatabase()) {
+    await importJsonToDbIfEmpty(brandId);
+    return updateReviewMetadataDb(brandId, reviewId, patch);
+  }
+  return updateReviewMetadataFile(brandId, reviewId, patch);
+}
+
+export function collectDistinctTopics(reviews: Review[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const r of reviews) {
+    for (const t of r.topics ?? []) {
+      const s = t.trim();
+      if (!s) continue;
+      const key = s.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(s);
+    }
+  }
+  out.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  return out;
+}
+
+export async function listReviewsForApi(
+  brandId: string,
+  filters: ListReviewsFilters
+): Promise<{
+  page: Review[];
+  storeTotal: number;
+  matchCount: number;
+  topicsInUse: string[];
+  updatedAt: string;
+  slackChannelId?: string;
+}> {
+  if (useDatabase()) {
+    await importJsonToDbIfEmpty(brandId);
+    return listReviewsFromDb(brandId, filters);
+  }
+  const data = readReviewsFile(brandId);
+  let reviews = data.reviews;
+  const q = filters.q?.toLowerCase().trim();
+  if (q) {
+    reviews = reviews.filter(
+      (r) =>
+        (r.title?.toLowerCase().includes(q) ?? false) ||
+        r.content.toLowerCase().includes(q)
+    );
+  }
+  const topic = filters.topic?.trim();
+  if (topic) {
+    const tk = topic.toLowerCase();
+    reviews = reviews.filter((r) =>
+      (r.topics ?? []).some((t) => t.toLowerCase() === tk)
+    );
+  }
+  if (filters.starredOnly) {
+    reviews = reviews.filter((r) => !!r.starred);
+  }
+  const matchCount = reviews.length;
+  const page = reviews.slice(
+    filters.offset,
+    filters.offset + filters.limit
+  );
+  return {
+    page,
+    storeTotal: data.reviews.length,
+    matchCount,
+    topicsInUse: collectDistinctTopics(data.reviews),
+    updatedAt: data.updatedAt,
+    slackChannelId: data.slackChannelId,
+  };
+}
+
 export function inferSource(text: string): ReviewSource {
   const lower = text.toLowerCase();
   if (lower.includes("trustpilot")) return "trustpilot";
-  if (lower.includes("app store") || lower.includes("appstore")) return "app_store";
+  if (lower.includes("app store") || lower.includes("appstore"))
+    return "app_store";
   return "unknown";
 }
 
-/** Parse a star rating from footer text like "★★★★★ Verified" */
 function parseStars(footer?: string): number | undefined {
   if (!footer) return undefined;
   const stars = (footer.match(/★/g) || []).length;
   return stars > 0 ? stars : undefined;
 }
 
-/** Parse Slack message into a Review, handling both plain text and attachment formats. */
-export function parseSlackMessage(
-  msg: SlackMessage
-): Omit<Review, "id"> {
+export function parseSlackMessage(msg: SlackMessage): Omit<Review, "id"> {
   const att = msg.attachments?.[0];
 
-  // Trustpilot: review data lives in attachments
   if (att?.text) {
     const source = inferSource(att.footer ?? att.fallback ?? "trustpilot");
     return {
@@ -140,7 +238,6 @@ export function parseSlackMessage(
     };
   }
 
-  // App Store Review Bot / other: review data is in message text
   const text = msg.text.trim();
   const source = inferSource(text);
   const firstLine = text.split(/\r?\n/)[0] ?? "";

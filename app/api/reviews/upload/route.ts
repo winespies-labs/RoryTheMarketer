@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBrand } from "@/lib/brands";
-import {
-  mergeReviews,
-  readReviews,
-  writeReviews,
-} from "@/lib/reviews-storage";
+import { loadReviews, mergeReviews } from "@/lib/reviews-storage";
 import type { ReviewSource } from "@/lib/reviews";
 
 /** Parse a single CSV line respecting quoted fields. */
@@ -134,8 +130,8 @@ export async function POST(req: NextRequest) {
     createdAt: now,
   }));
 
-  const { added, total } = mergeReviews(brandId, incoming);
-  const data = readReviews(brandId);
+  const { added, total } = await mergeReviews(brandId, incoming);
+  const data = await loadReviews(brandId);
 
   return NextResponse.json({
     ok: true,

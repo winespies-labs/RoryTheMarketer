@@ -39,12 +39,19 @@ export default function LoginPage() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-[var(--background)]">
       <div className="w-full max-w-sm px-6">
-        <div className="mb-8 text-center">
+        <div className="mb-6 text-center">
+          {/* Drop your rory-gandalf.png into /public */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/rory-gandalf.png"
+            alt="Rory Sutherland as Gandalf"
+            className="mx-auto mb-4 h-48 w-48 rounded-full object-cover shadow-lg"
+          />
           <h1 className="text-2xl font-bold text-[var(--foreground)]">
-            Rory the Marketer
+            Thou Shall Not Pass
           </h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Sign in to continue
+            ...unless you know the magic words
           </p>
         </div>
 
@@ -95,7 +102,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? "Speak friend and enter..." : "Speak Friend and Enter"}
           </button>
         </form>
       </div>

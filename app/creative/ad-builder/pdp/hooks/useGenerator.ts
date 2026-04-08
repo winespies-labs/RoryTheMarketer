@@ -74,10 +74,9 @@ async function saveAdToDb(ad: GeneratedAd, brand = "winespies"): Promise<void> {
 
 async function generateImage(
   context: WineAdContext,
-  template: TemplateSchema
+  template: TemplateSchema,
+  overrides: Record<string, string> = {}
 ): Promise<string | null> {
-  // Build image prompt with all visual elements baked in
-  // (score badge, price callout, etc.) — no HTML overlay
   const classLabel =
     context.varietal_classification === "red"
       ? "dark red wine"
@@ -87,10 +86,22 @@ async function generateImage(
       ? "sparkling wine"
       : "wine";
 
-  const scoreText =
-    context.has_score && context.score
-      ? `Prominently display "${context.score} pts — ${context.score_label}" as a score badge.`
-      : "";
+  const effectiveScore =
+    overrides["score_badge"] != null && overrides["score_badge"] !== ""
+      ? overrides["score_badge"]
+      : context.has_score && context.score
+      ? String(context.score)
+      : null;
+  const effectiveLabel =
+    overrides["score_label"] != null && overrides["score_label"] !== ""
+      ? overrides["score_label"]
+      : context.has_score
+      ? context.score_label
+      : null;
+
+  const scoreText = effectiveScore
+    ? `Prominently display "${effectiveScore} pts — ${effectiveLabel}" as a score badge.`
+    : "";
 
   const imagePrompt = `
 Professional wine advertisement image in ${template.name} style.
@@ -104,31 +115,18 @@ Do not include any other text beyond the price and score badge.
 `.trim();
 
   try {
-    const res = await fetch("/api/ad-builder/images", {
+    const res = await fetch("/api/creative/generate-image", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         prompt: imagePrompt,
-        templateId: template.id,
-        wineContext: {
-          wine_name: context.display_name,
-          varietal: context.varietal,
-          appellation: context.appellation,
-          classification: context.varietal_classification,
-          bottle_image_url: context.composite_image_url,
-          sale_price: context.sale_price,
-          retail_price: context.retail_price,
-          discount_pct: context.discount_pct,
-          has_score: context.has_score,
-          score: context.score,
-          score_label: context.score_label,
-        },
+        bottleImageUrl: context.composite_image_url || undefined,
       }),
     });
 
     if (!res.ok) return null;
     const data = await res.json();
-    return data.imageUrl ?? data.url ?? null;
+    return data.imageDataUrl ?? null;
   } catch {
     return null;
   }
@@ -136,7 +134,7 @@ Do not include any other text beyond the price and score badge.
 
 export function useGenerator(
   batch: BatchMappingResult | null,
-  overrides: Record<string, Record<string, string>>
+  overrides: Record<number, Record<string, string>>
 ) {
   const [ads, setAds] = useState<GeneratedAd[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -179,7 +177,7 @@ export function useGenerator(
     await Promise.all(
       readyMappings.map(async (mapping) => {
         const key = mapping.mapping_key;
-        const fieldOverrides = overrides[key] ?? {};
+        const fieldOverrides = overrides[mapping.context.sale_id] ?? {};
 
         try {
           // Copy generation
@@ -197,7 +195,7 @@ export function useGenerator(
           });
 
           // Image generation
-          const imageUrl = await generateImage(mapping.context, mapping.template);
+          const imageUrl = await generateImage(mapping.context, mapping.template, fieldOverrides);
           updateAdField(key, {
             image_url: imageUrl,
             status: "complete",
@@ -227,7 +225,7 @@ export function useGenerator(
     async (mappingKey: string) => {
       const ad = ads.find((a) => a.mapping_key === mappingKey);
       if (!ad) return;
-      const fieldOverrides = overrides[mappingKey] ?? {};
+      const fieldOverrides = overrides[ad.context.sale_id] ?? {};
 
       updateAdField(mappingKey, { status: "generating_copy" });
       try {
@@ -252,8 +250,9 @@ export function useGenerator(
       if (!ad) return;
 
       updateAdField(mappingKey, { status: "generating_image" });
+      const imgOverrides = overrides[ad.context.sale_id] ?? {};
       try {
-        const imageUrl = await generateImage(ad.context, ad.template);
+        const imageUrl = await generateImage(ad.context, ad.template, imgOverrides);
         updateAdField(mappingKey, { image_url: imageUrl, status: "complete" });
       } catch (err) {
         updateAdField(mappingKey, {
