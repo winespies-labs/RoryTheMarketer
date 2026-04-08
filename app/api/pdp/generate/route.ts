@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import { generateAdImage } from "@/lib/gemini";
 import { getReferenceAdById, getReferenceAdStyleImagePath } from "@/lib/reference-ads";
+import { substitutePromptVariables } from "@/lib/prompt-variables";
 import type { WineDetails } from "@/lib/ad-builder";
 
 export const maxDuration = 120;
@@ -71,13 +72,24 @@ export async function POST(req: NextRequest) {
       ctaText: wineData.ctaText ?? "Shop This Deal →",
     };
 
+    // If the reference ad has a Generation Prompt, substitute tokens and use it directly.
+    // Otherwise fall back to the generic buildPrompt() via strictTemplateMode.
+    let customPrompt: string | undefined;
+    if (refAd.generationPrompt) {
+      customPrompt = substitutePromptVariables(refAd.generationPrompt, {
+        wineDetails,
+        wineName: wineData.headline,
+      });
+    }
+
     const result = await generateAdImage({
       referenceImageBase64: styleBase64,
       referenceImageMimeType: styleMime,
       bottleImages: [{ base64: bottle.base64, mimeType: bottle.mimeType }],
       wineDetails,
       styleName: refAd.meta.label,
-      strictTemplateMode: true,
+      strictTemplateMode: !customPrompt,
+      customPrompt,
     });
 
     return NextResponse.json({ imageBase64: result.imageBase64, mimeType: result.mimeType });

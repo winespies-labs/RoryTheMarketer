@@ -35,6 +35,11 @@ export interface GenerateAdImageInput {
    * and on uniform price-pill styling so outputs stay consistent across runs.
    */
   strictTemplateMode?: boolean;
+  /**
+   * Complete, pre-authored generation prompt (with {{tokens}} already substituted).
+   * When provided, replaces buildPrompt() entirely.
+   */
+  customPrompt?: string;
   /** For `{{...}}` in visualNotes / imagePromptModifier (wine fields, {{wineName}}, {{copy.*}}). */
   wineName?: string;
   saleId?: number;
@@ -182,12 +187,14 @@ export async function generateAdImage(
     varCtx,
   );
 
-  const prompt = buildPrompt(input.wineDetails, input.styleName, {
-    imagePromptModifier,
-    aspectRatio: input.aspectRatio,
-    visualNotes,
-    strictTemplateMode: input.strictTemplateMode,
-  });
+  const prompt = input.customPrompt
+    ? input.customPrompt
+    : buildPrompt(input.wineDetails, input.styleName, {
+        imagePromptModifier,
+        aspectRatio: input.aspectRatio,
+        visualNotes,
+        strictTemplateMode: input.strictTemplateMode,
+      });
 
   const contents = [
     {

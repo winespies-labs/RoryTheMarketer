@@ -29,6 +29,8 @@ export type ReferenceAd = {
   description: string;
   visualNotes: string;
   adDescription: string;
+  /** Full Nano Banana generation prompt with {{token}} placeholders, if present. */
+  generationPrompt: string;
   rawMarkdown: string;
 };
 
@@ -57,6 +59,12 @@ function extractAdCreativeDetails(markdown: string): string {
 
 function extractAdDescription(markdown: string): string {
   const pattern = /^## Ad Description\s*\n([\s\S]*?)(?=^## |\Z)/m;
+  const match = markdown.match(pattern);
+  return match ? match[1].trim() : "";
+}
+
+function extractGenerationPrompt(markdown: string): string {
+  const pattern = /^## Generation Prompt\s*\n([\s\S]*?)(?=^## |\Z)/m;
   const match = markdown.match(pattern);
   return match ? match[1].trim() : "";
 }
@@ -158,6 +166,7 @@ export function getReferenceAdById(id: string): ReferenceAd | null {
       description,
       visualNotes,
       adDescription,
+      generationPrompt: extractGenerationPrompt(raw),
       rawMarkdown: raw,
     };
   }

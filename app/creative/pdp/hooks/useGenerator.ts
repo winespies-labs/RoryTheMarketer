@@ -21,6 +21,7 @@ export interface WineOverrides {
   wineName?: string;
   score?: string;
   pullQuote?: string;
+  ctaText?: string;
 }
 
 function buildWineData(ctx: WineAdContext, overrides: WineOverrides = {}) {
@@ -42,13 +43,18 @@ function buildWineData(ctx: WineAdContext, overrides: WineOverrides = {}) {
       ? overrides.pullQuote || undefined
       : ctx.mini_brief_plain.slice(0, 220) || undefined;
 
+  const ctaText =
+    overrides.ctaText !== undefined && overrides.ctaText !== ""
+      ? overrides.ctaText
+      : "Shop This Deal →";
+
   return {
     headline: wineName,
     score,
     pullQuote,
     salePrice: ctx.sale_price,
     retailPrice: ctx.retail_price,
-    ctaText: "Shop This Deal →",
+    ctaText,
     bottleImageUrl: ctx.composite_image_url,
   };
 }

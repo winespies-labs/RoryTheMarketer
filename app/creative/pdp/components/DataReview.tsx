@@ -27,6 +27,9 @@ function WineDataRow({
       ? overrides.pullQuote
       : context.mini_brief_plain.slice(0, 220);
 
+  const ctaText =
+    overrides.ctaText !== undefined ? overrides.ctaText : "Shop This Deal →";
+
   const scoreEmpty = !score;
 
   return (
@@ -92,6 +95,20 @@ function WineDataRow({
             <span className="text-sm text-muted line-through">{context.retail_price}</span>
             <span className="text-xs font-semibold text-success">{context.discount_pct}% off</span>
           </div>
+        </div>
+
+        {/* CTA text */}
+        <div>
+          <label className="text-[10px] font-semibold text-muted uppercase tracking-wide block mb-1">
+            CTA Button Text
+          </label>
+          <input
+            type="text"
+            value={ctaText}
+            onChange={(e) => onOverride("ctaText", e.target.value)}
+            placeholder="Shop This Deal →"
+            className="w-full px-2.5 py-1.5 text-sm border border-border rounded-lg bg-surface focus:outline-none focus:ring-1 focus:ring-accent"
+          />
         </div>
 
         {/* Pull quote / body copy */}
