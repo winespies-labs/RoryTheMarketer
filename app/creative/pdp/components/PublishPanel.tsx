@@ -3,6 +3,11 @@
 
 import { useEffect, useState } from "react";
 import type { GenerationJob } from "../hooks/useGenerator";
+import NewAdSetForm, {
+  type NewAdSetFormState,
+  DEFAULT_NEW_AD_SET,
+} from "./NewAdSetForm";
+import type { MetaCampaignLive, MetaAudience, NewAdSetInput } from "@/lib/meta-publish";
 
 interface AdSet {
   id: string;
@@ -62,22 +67,50 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
   }, [jobs]);
   const [publishing, setPublishing] = useState(false);
   const [preflight, setPreflight] = useState<Preflight | null>(null);
+  const [destinationMode, setDestinationMode] = useState<"existing" | "new">("existing");
+  const [campaigns, setCampaigns] = useState<MetaCampaignLive[]>([]);
+  const [audiences, setAudiences] = useState<MetaAudience[]>([]);
+  const [newAdSetForm, setNewAdSetForm] = useState<NewAdSetFormState>(DEFAULT_NEW_AD_SET);
 
   useEffect(() => {
-    async function loadAdSets() {
+    async function loadData() {
       try {
-        const res = await fetch("/api/pdp/publish?action=adsets&brand=winespies");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json() as { adSets: AdSet[] };
-        setAdSets(data.adSets ?? []);
-        if (data.adSets?.length > 0) setSelectedAdSetId(data.adSets[0].id);
+        const [adSetsRes, campaignsRes, audiencesRes] = await Promise.all([
+          fetch("/api/pdp/publish?action=adsets&brand=winespies"),
+          fetch("/api/pdp/publish?action=campaigns&brand=winespies"),
+          fetch("/api/pdp/publish?action=audiences&brand=winespies"),
+        ]);
+
+        if (adSetsRes.ok) {
+          const data = (await adSetsRes.json()) as { adSets: AdSet[] };
+          setAdSets(data.adSets ?? []);
+          if (data.adSets?.length > 0) setSelectedAdSetId(data.adSets[0].id);
+        } else {
+          setAdSetsError(`HTTP ${adSetsRes.status}`);
+        }
+
+        if (campaignsRes.ok) {
+          const data = (await campaignsRes.json()) as {
+            campaigns: MetaCampaignLive[];
+          };
+          setCampaigns(data.campaigns ?? []);
+        }
+
+        if (audiencesRes.ok) {
+          const data = (await audiencesRes.json()) as {
+            audiences: MetaAudience[];
+          };
+          setAudiences(data.audiences ?? []);
+        }
       } catch (err) {
-        setAdSetsError(err instanceof Error ? err.message : "Failed to load ad sets");
+        setAdSetsError(
+          err instanceof Error ? err.message : "Failed to load data",
+        );
       } finally {
         setAdSetsLoading(false);
       }
     }
-    loadAdSets();
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -172,8 +205,46 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
     }
   }
 
+  function buildNewAdSetInput(): NewAdSetInput {
+    return {
+      campaignId: newAdSetForm.campaignId,
+      name: newAdSetForm.name,
+      budgetType: newAdSetForm.budgetType,
+      budgetCents: Math.round(parseFloat(newAdSetForm.budgetAmount || "0") * 100),
+      startTime: new Date(newAdSetForm.startDate).toISOString(),
+      endTime: newAdSetForm.endDate
+        ? new Date(newAdSetForm.endDate).toISOString()
+        : undefined,
+      optimizationGoal: newAdSetForm.optimizationGoal,
+      bidStrategy: newAdSetForm.bidStrategy,
+      bidAmountCents: newAdSetForm.bidAmount
+        ? Math.round(parseFloat(newAdSetForm.bidAmount) * 100)
+        : undefined,
+      targeting: {
+        geoCountries: newAdSetForm.geoCountries,
+        ageMin: parseInt(newAdSetForm.ageMin, 10),
+        ageMax: parseInt(newAdSetForm.ageMax, 10),
+        genders:
+          newAdSetForm.gender === "all"
+            ? undefined
+            : [newAdSetForm.gender === "male" ? 1 : 2],
+        customAudiences: newAdSetForm.selectedAudiences.map(({ id, name }) => ({
+          id,
+          name,
+        })),
+      },
+      placementMode: newAdSetForm.placementMode,
+      publisherPlatforms: newAdSetForm.publisherPlatforms,
+      facebookPositions: newAdSetForm.facebookPositions,
+      instagramPositions: newAdSetForm.instagramPositions,
+    };
+  }
+
   async function handlePublish() {
-    if (!selectedAdSetId) return;
+    if (!selectedAdSetId && destinationMode === "existing") return;
+    if (destinationMode === "new" && (!newAdSetForm.campaignId || !newAdSetForm.name || !newAdSetForm.budgetAmount)) {
+      return;
+    }
 
     setPublishing(true);
 
@@ -203,7 +274,8 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           brand: "winespies",
-          adSetId: selectedAdSetId,
+          adSetId: destinationMode === "existing" ? selectedAdSetId : null,
+          newAdSet: destinationMode === "new" ? buildNewAdSetInput() : undefined,
           jobs: publishJobs,
         }),
       });
@@ -269,25 +341,60 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
         </button>
       </div>
 
-      <div className="border border-border rounded-xl p-4 flex flex-col gap-3 bg-surface">
-        <div className="text-sm font-medium text-foreground">Destination Ad Set</div>
-
-        {adSetsLoading ? (
-          <div className="text-sm text-muted">Loading ad sets…</div>
-        ) : adSetsError ? (
-          <div className="text-sm text-danger">{adSetsError}</div>
-        ) : (
-          <select
-            value={selectedAdSetId}
-            onChange={(e) => setSelectedAdSetId(e.target.value)}
-            className="px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-accent"
-          >
-            {adSets.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.effective_status})
-              </option>
+      <div className="border border-border rounded-xl p-4 flex flex-col gap-4 bg-surface">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium text-foreground">
+            Destination Ad Set
+          </div>
+          <div className="flex gap-1">
+            {(["existing", "new"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setDestinationMode(m)}
+                className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
+                  destinationMode === m
+                    ? "border-accent bg-accent/10 text-accent font-medium"
+                    : "border-border text-muted hover:text-foreground"
+                }`}
+              >
+                {m === "existing" ? "Use existing" : "Create new"}
+              </button>
             ))}
-          </select>
+          </div>
+        </div>
+
+        {destinationMode === "existing" && (
+          <>
+            {adSetsLoading ? (
+              <div className="text-sm text-muted">Loading ad sets…</div>
+            ) : adSetsError ? (
+              <div className="text-sm text-danger">{adSetsError}</div>
+            ) : (
+              <select
+                value={selectedAdSetId}
+                onChange={(e) => setSelectedAdSetId(e.target.value)}
+                className="px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-accent"
+              >
+                {adSets.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.effective_status})
+                  </option>
+                ))}
+              </select>
+            )}
+          </>
+        )}
+
+        {destinationMode === "new" && (
+          <NewAdSetForm
+            campaigns={campaigns}
+            audiences={audiences}
+            value={newAdSetForm}
+            onChange={(updates) =>
+              setNewAdSetForm((prev) => ({ ...prev, ...updates }))
+            }
+          />
         )}
       </div>
 
@@ -380,10 +487,25 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
         <div className="flex justify-end">
           <button
             onClick={handlePublish}
-            disabled={publishing || anyPublishing || !selectedAdSetId || preflight?.ok === false}
+            disabled={
+            publishing ||
+            anyPublishing ||
+            preflight?.ok === false ||
+            (destinationMode === "existing" && !selectedAdSetId) ||
+            (destinationMode === "new" &&
+              (!newAdSetForm.campaignId ||
+                !newAdSetForm.name ||
+                !newAdSetForm.budgetAmount))
+          }
             className="px-6 py-2.5 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {publishing ? "Publishing…" : `Publish ${jobs.length} Ad${jobs.length !== 1 ? "s" : ""} to Meta`}
+            {publishing
+              ? destinationMode === "new"
+                ? "Creating ad set…"
+                : "Publishing…"
+              : destinationMode === "new"
+              ? `Create Ad Set & Publish ${jobs.length} Ad${jobs.length !== 1 ? "s" : ""}`
+              : `Publish ${jobs.length} Ad${jobs.length !== 1 ? "s" : ""} to Meta`}
           </button>
         </div>
       )}
