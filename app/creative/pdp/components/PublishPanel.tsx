@@ -44,12 +44,17 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
   const [adSetsLoading, setAdSetsLoading] = useState(true);
   const [adSetsError, setAdSetsError] = useState<string | null>(null);
   const [selectedAdSetId, setSelectedAdSetId] = useState<string>("");
-  const [jobStates, setJobStates] = useState<Record<string, JobPublishState>>(
-    () =>
-      Object.fromEntries(
-        jobs.map((j) => [j.id, { copy: buildDefaultCopy(j), status: "idle" as PublishStatus }])
-      )
-  );
+  const [jobStates, setJobStates] = useState<Record<string, JobPublishState>>({});
+
+  useEffect(() => {
+    setJobStates((prev) => {
+      const next: Record<string, JobPublishState> = {};
+      for (const job of jobs) {
+        next[job.id] = prev[job.id] ?? { copy: buildDefaultCopy(job), status: "idle" };
+      }
+      return next;
+    });
+  }, [jobs]);
   const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
@@ -84,14 +89,16 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
 
     setPublishing(true);
 
-    const publishJobs = jobs.map((job) => ({
-      jobId: job.id,
-      imageBase64: job.imageBase64!,
-      mimeType: job.mimeType,
-      wineName: job.wineName,
-      ...jobStates[job.id].copy,
-      saleUrl: `https://winespies.com/sales/${job.saleId}`,
-    }));
+    const publishJobs = jobs
+      .filter((job): job is typeof job & { imageBase64: string } => !!job.imageBase64)
+      .map((job) => ({
+        jobId: job.id,
+        imageBase64: job.imageBase64,
+        mimeType: job.mimeType,
+        wineName: job.wineName,
+        ...jobStates[job.id].copy,
+        saleUrl: `https://winespies.com/sales/${job.saleId}`,
+      }));
 
     setJobStates((prev) =>
       Object.fromEntries(

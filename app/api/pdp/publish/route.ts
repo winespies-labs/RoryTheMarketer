@@ -1,5 +1,6 @@
 // app/api/pdp/publish/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { getBrand } from "@/lib/brands";
 import {
   uploadAdImage,
   createAdCreative,
@@ -13,6 +14,10 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get("action");
   const brand = searchParams.get("brand") ?? "winespies";
+
+  if (!getBrand(brand)) {
+    return NextResponse.json({ error: "Unknown brand" }, { status: 400 });
+  }
 
   if (action === "adsets") {
     try {
@@ -41,7 +46,6 @@ interface PublishJob {
 interface PublishRequest {
   brand: string;
   adSetId: string | null;
-  newAdSetName: string | null;
   jobs: PublishJob[];
 }
 
@@ -55,6 +59,10 @@ export async function POST(req: NextRequest) {
 
   const { brand, adSetId, jobs } = body;
 
+  if (!getBrand(brand)) {
+    return NextResponse.json({ error: "Unknown brand" }, { status: 400 });
+  }
+
   if (!adSetId) {
     return NextResponse.json(
       { error: "New ad set creation requires a campaign ID. Please select an existing ad set." },
@@ -66,37 +74,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No jobs provided" }, { status: 400 });
   }
 
-  const results: Array<{
-    jobId: string;
-    success: boolean;
-    adId?: string;
-    error?: string;
-  }> = [];
-
-  for (const job of jobs) {
-    try {
-      const { hash } = await uploadAdImage(brand, job.imageBase64);
-      const { id: creativeId } = await createAdCreative(brand, {
-        name: `PDP — ${job.wineName}`,
-        imageHash: hash,
-        primaryText: job.primary_text,
-        headline: job.headline,
-        description: job.description,
-        link: job.saleUrl,
-        ctaType: "SHOP_NOW",
-      });
-      const { id: adId } = await createAd(brand, {
-        name: `PDP — ${job.wineName}`,
-        adsetId: adSetId,
-        creativeId,
-        status: "ACTIVE",
-      });
-      results.push({ jobId: job.jobId, success: true, adId });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Publish failed";
-      results.push({ jobId: job.jobId, success: false, error: msg });
-    }
-  }
+  const results = await Promise.all(
+    jobs.map(async (job) => {
+      try {
+        const { hash } = await uploadAdImage(brand, job.imageBase64);
+        const { id: creativeId } = await createAdCreative(brand, {
+          name: `PDP — ${job.wineName}`,
+          imageHash: hash,
+          primaryText: job.primary_text,
+          headline: job.headline,
+          description: job.description,
+          link: job.saleUrl,
+          ctaType: "SHOP_NOW",
+        });
+        const { id: adId } = await createAd(brand, {
+          name: `PDP — ${job.wineName}`,
+          adsetId: adSetId,
+          creativeId,
+          status: "ACTIVE",
+        });
+        return { jobId: job.jobId, success: true as const, adId };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Publish failed";
+        return { jobId: job.jobId, success: false as const, error: msg };
+      }
+    })
+  );
 
   return NextResponse.json({ results });
 }

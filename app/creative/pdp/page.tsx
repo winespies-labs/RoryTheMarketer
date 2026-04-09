@@ -82,8 +82,8 @@ function StepIndicator({
 function PDPBuilderInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentStep = Math.max(1, Math.min(5, parseInt(searchParams.get("step") ?? "1", 10)));
-  const [maxReached, setMaxReached] = useState(currentStep);
+  const [maxReached, setMaxReached] = useState(1);
+  const currentStep = Math.max(1, Math.min(maxReached, parseInt(searchParams.get("step") ?? "1", 10)));
   const [selectedStyleIds, setSelectedStyleIds] = useState<string[]>([]);
   const [overrides, setOverrides] = useState<Record<number, WineOverrides>>({});
 
