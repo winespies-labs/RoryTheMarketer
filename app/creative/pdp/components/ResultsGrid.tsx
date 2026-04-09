@@ -119,7 +119,7 @@ function JobCard({
           />
           <button
             onClick={() => onRegenerate(fixInstruction || undefined)}
-            disabled={job.status === "generating"}
+            disabled={!canRegenerate || job.status === "generating"}
             className="self-end px-3 py-1.5 bg-accent text-white text-xs font-medium rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {job.status === "generating" ? "Generating…" : "Regenerate"}
@@ -147,8 +147,6 @@ export default function ResultsGrid({
   onBack,
   onPublish,
 }: ResultsGridProps) {
-  const completedJobs = jobs.filter((j) => j.imageBase64);
-
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [fixInstructions, setFixInstructions] = useState<Record<string, string>>({});
 
@@ -163,6 +161,8 @@ export default function ResultsGrid({
       return next;
     });
   };
+
+  const completedJobs = jobs.filter((j) => j.imageBase64);
 
   const downloadAll = () => completedJobs.forEach((j) => downloadImage(j));
 
