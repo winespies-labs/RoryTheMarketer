@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
         ctaText?: string;
         bottleImageUrl: string;
       };
+      fixInstruction?: string;
     };
 
     const { styleId, wineData } = body;
@@ -80,6 +81,9 @@ export async function POST(req: NextRequest) {
         wineDetails,
         wineName: wineData.headline,
       });
+    }
+    if (body.fixInstruction?.trim()) {
+      customPrompt = (customPrompt ?? "") + `\n\nAdditional fix: ${body.fixInstruction.trim()}`;
     }
 
     const result = await generateAdImage({
