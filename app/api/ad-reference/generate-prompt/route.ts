@@ -26,23 +26,32 @@ Write a Gemini image-generation prompt that instructs Gemini to recreate this ex
 
 Return ONLY the prompt text. No preamble, no explanation, no markdown code fences.`;
 
+const ALLOWED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"] as const;
+type AllowedMimeType = typeof ALLOWED_MIME_TYPES[number];
+
+const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+
 export async function POST(req: NextRequest) {
-  const formData = await req.formData();
-  const imageFile = formData.get("image") as File | null;
-
-  if (!imageFile) {
-    return NextResponse.json({ error: "image is required" }, { status: 400 });
-  }
-
-  const buffer = Buffer.from(await imageFile.arrayBuffer());
-  const base64 = buffer.toString("base64");
-  const mimeType = (imageFile.type || "image/png") as
-    | "image/png"
-    | "image/jpeg"
-    | "image/webp"
-    | "image/gif";
-
   try {
+    const formData = await req.formData();
+    const imageFile = formData.get("image") as File | null;
+
+    if (!imageFile) {
+      return NextResponse.json({ error: "image is required" }, { status: 400 });
+    }
+
+    if (imageFile.size > MAX_BYTES) {
+      return NextResponse.json({ error: "Image must be under 5 MB" }, { status: 400 });
+    }
+
+    const buffer = Buffer.from(await imageFile.arrayBuffer());
+    const base64 = buffer.toString("base64");
+
+    const rawMime = imageFile.type || "image/png";
+    const mimeType: AllowedMimeType = (ALLOWED_MIME_TYPES as readonly string[]).includes(rawMime)
+      ? (rawMime as AllowedMimeType)
+      : "image/png";
+
     const msg = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 2048,
@@ -68,6 +77,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ prompt });
   } catch (err) {
+    console.error("[generate-prompt] Error:", err);
     const msg = err instanceof Error ? err.message : "Generation failed";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
