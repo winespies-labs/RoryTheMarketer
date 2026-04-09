@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateReferenceAd } from "@/lib/reference-ads";
+import { updateReferenceAd, saveReferenceAdToDb, getReferenceAdById } from "@/lib/reference-ads";
 import type { ReferenceAdUpdateInput } from "@/lib/reference-ads";
 import path from "path";
 
@@ -37,6 +37,21 @@ export async function PUT(req: NextRequest) {
     const referenceAd = updateReferenceAd(input, imageBuffer, imageExt);
     if (!referenceAd) {
       return NextResponse.json({ error: "Reference ad not found" }, { status: 404 });
+    }
+
+    // Persist updated content to DB
+    const full = getReferenceAdById(referenceAd.id);
+    if (full) {
+      const imageMime = imageBuffer ? "image/png" : undefined;
+      await saveReferenceAdToDb(
+        referenceAd.id,
+        referenceAd.label,
+        referenceAd.brand,
+        full.rawMarkdown,
+        imageBuffer,
+        imageMime,
+        referenceAd.imageFile,
+      );
     }
 
     return NextResponse.json({ referenceAd });

@@ -4,6 +4,8 @@ import matter from "gray-matter";
 import { nanoid } from "nanoid";
 
 import type { AdType, AspectRatio } from "@/lib/ad-builder";
+import { useDatabase } from "@/lib/database";
+import { getPrisma } from "@/lib/prisma";
 
 export type ReferenceAdFrontmatter = {
   id: string;
@@ -181,6 +183,89 @@ export function getReferenceAdStyleImagePath(referenceId: string): string | null
   const dir = getStaticAdsDir();
   const imagePath = path.join(dir, ad.meta.imageFile);
   return fs.existsSync(imagePath) ? imagePath : null;
+}
+
+// --- Database persistence (survives Railway deploys) ---
+
+/** Upsert a reference ad's markdown + image bytes into Postgres. Fire-and-forget safe. */
+export async function saveReferenceAdToDb(
+  id: string,
+  label: string,
+  brand: string,
+  markdown: string,
+  imageBuffer?: Buffer,
+  imageMime?: string,
+  imageFilename?: string,
+): Promise<void> {
+  if (!useDatabase()) return;
+  try {
+    const prisma = getPrisma();
+    await prisma.referenceAdEntry.upsert({
+      where: { id },
+      create: {
+        id,
+        label,
+        brand,
+        markdown,
+        imageData: imageBuffer ? new Uint8Array(imageBuffer) : null,
+        imageMime: imageMime ?? null,
+        imageFilename: imageFilename ?? null,
+      },
+      update: {
+        label,
+        brand,
+        markdown,
+        ...(imageBuffer
+          ? { imageData: new Uint8Array(imageBuffer), imageMime: imageMime ?? null, imageFilename: imageFilename ?? null }
+          : {}),
+      },
+    });
+  } catch (err) {
+    console.error("[reference-ads] DB save failed for", id, err);
+  }
+}
+
+/** Delete a reference ad from Postgres. */
+export async function deleteReferenceAdFromDb(id: string): Promise<void> {
+  if (!useDatabase()) return;
+  try {
+    const prisma = getPrisma();
+    await prisma.referenceAdEntry.deleteMany({ where: { id } });
+  } catch (err) {
+    console.error("[reference-ads] DB delete failed for", id, err);
+  }
+}
+
+/**
+ * On server startup, restore any DB-stored reference ads whose disk files are missing.
+ * This recovers uploaded templates after a Railway deploy wipes the ephemeral filesystem.
+ */
+export async function syncReferenceAdsFromDb(): Promise<void> {
+  if (!useDatabase()) return;
+  try {
+    const prisma = getPrisma();
+    const rows = await prisma.referenceAdEntry.findMany();
+    const dir = getStaticAdsDir();
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+    for (const row of rows) {
+      // Restore markdown file
+      const mdPath = path.join(dir, `${row.id}.md`);
+      if (!fs.existsSync(mdPath)) {
+        fs.writeFileSync(mdPath, row.markdown, "utf8");
+      }
+      // Restore image file
+      if (row.imageData && row.imageFilename) {
+        const imgPath = path.join(dir, row.imageFilename);
+        if (!fs.existsSync(imgPath)) {
+          fs.writeFileSync(imgPath, Buffer.from(row.imageData));
+        }
+      }
+    }
+    console.log(`[reference-ads] Synced ${rows.length} entries from DB to disk`);
+  } catch (err) {
+    console.error("[reference-ads] DB sync failed:", err);
+  }
 }
 
 // --- CRUD Types ---

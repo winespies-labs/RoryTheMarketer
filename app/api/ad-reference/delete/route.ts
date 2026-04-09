@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deleteReferenceAd } from "@/lib/reference-ads";
+import { deleteReferenceAd, deleteReferenceAdFromDb } from "@/lib/reference-ads";
 
 export async function DELETE(req: NextRequest) {
   const id = new URL(req.url).searchParams.get("id");
@@ -12,5 +12,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Reference ad not found" }, { status: 404 });
   }
 
+  await deleteReferenceAdFromDb(id);
   return NextResponse.json({ ok: true });
 }

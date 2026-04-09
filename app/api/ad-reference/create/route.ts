@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBrand } from "@/lib/brands";
-import { createReferenceAd } from "@/lib/reference-ads";
+import { createReferenceAd, saveReferenceAdToDb, getReferenceAdById } from "@/lib/reference-ads";
 import type { ReferenceAdCreateInput } from "@/lib/reference-ads";
 import path from "path";
 
@@ -38,6 +38,21 @@ export async function POST(req: NextRequest) {
     const ext = path.extname(imageFile.name) || ".png";
 
     const referenceAd = createReferenceAd(input, buffer, ext);
+
+    // Persist to DB so the template survives Railway deploys
+    const full = getReferenceAdById(referenceAd.id);
+    if (full) {
+      const mime = imageFile.type || "image/png";
+      await saveReferenceAdToDb(
+        referenceAd.id,
+        referenceAd.label,
+        referenceAd.brand,
+        full.rawMarkdown,
+        buffer,
+        mime,
+        referenceAd.imageFile,
+      );
+    }
 
     return NextResponse.json({ referenceAd });
   } catch (err) {

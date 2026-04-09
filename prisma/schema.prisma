@@ -239,3 +239,19 @@ model BrandAssetEntry {
   @@index([brandId])
   @@map("brand_asset_entries")
 }
+
+/// Reference ad templates — markdown + image bytes persisted in Postgres so they survive Railway deploys
+model ReferenceAdEntry {
+  id            String   @id
+  label         String
+  brand         String
+  markdown      String
+  imageData     Bytes?   @map("image_data")
+  imageMime     String?  @map("image_mime")
+  imageFilename String?  @map("image_filename")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([brand])
+  @@map("reference_ad_entries")
+}
