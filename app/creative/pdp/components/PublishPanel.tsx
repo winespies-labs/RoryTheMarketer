@@ -44,8 +44,6 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
   const [adSetsLoading, setAdSetsLoading] = useState(true);
   const [adSetsError, setAdSetsError] = useState<string | null>(null);
   const [selectedAdSetId, setSelectedAdSetId] = useState<string>("");
-  const [newAdSetName, setNewAdSetName] = useState("");
-  const [useNewAdSet, setUseNewAdSet] = useState(false);
   const [jobStates, setJobStates] = useState<Record<string, JobPublishState>>(
     () =>
       Object.fromEntries(
@@ -82,9 +80,7 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
   }
 
   async function handlePublish() {
-    const adSetId = useNewAdSet ? null : selectedAdSetId;
-    if (!useNewAdSet && !adSetId) return;
-    if (useNewAdSet && !newAdSetName.trim()) return;
+    if (!selectedAdSetId) return;
 
     setPublishing(true);
 
@@ -112,8 +108,7 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           brand: "winespies",
-          adSetId: useNewAdSet ? null : adSetId,
-          newAdSetName: useNewAdSet ? newAdSetName.trim() : null,
+          adSetId: selectedAdSetId,
           jobs: publishJobs,
         }),
       });
@@ -170,55 +165,23 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
 
       <div className="border border-border rounded-xl p-4 flex flex-col gap-3 bg-surface">
         <div className="text-sm font-medium text-foreground">Destination Ad Set</div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setUseNewAdSet(false)}
-            className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-              !useNewAdSet ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:text-foreground"
-            }`}
-          >
-            Existing
-          </button>
-          <button
-            type="button"
-            onClick={() => setUseNewAdSet(true)}
-            className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-              useNewAdSet ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:text-foreground"
-            }`}
-          >
-            New Ad Set
-          </button>
-        </div>
 
-        {!useNewAdSet && (
-          adSetsLoading ? (
-            <div className="text-sm text-muted">Loading ad sets…</div>
-          ) : adSetsError ? (
-            <div className="text-sm text-danger">{adSetsError}</div>
-          ) : (
-            <select
-              value={selectedAdSetId}
-              onChange={(e) => setSelectedAdSetId(e.target.value)}
-              className="px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-accent"
-            >
-              {adSets.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.effective_status})
-                </option>
-              ))}
-            </select>
-          )
-        )}
-
-        {useNewAdSet && (
-          <input
-            type="text"
-            placeholder="New ad set name"
-            value={newAdSetName}
-            onChange={(e) => setNewAdSetName(e.target.value)}
+        {adSetsLoading ? (
+          <div className="text-sm text-muted">Loading ad sets…</div>
+        ) : adSetsError ? (
+          <div className="text-sm text-danger">{adSetsError}</div>
+        ) : (
+          <select
+            value={selectedAdSetId}
+            onChange={(e) => setSelectedAdSetId(e.target.value)}
             className="px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-accent"
-          />
+          >
+            {adSets.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({s.effective_status})
+              </option>
+            ))}
+          </select>
         )}
       </div>
 
@@ -287,7 +250,7 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
         <div className="flex justify-end">
           <button
             onClick={handlePublish}
-            disabled={publishing || anyPublishing || (!useNewAdSet && !selectedAdSetId) || (useNewAdSet && !newAdSetName.trim())}
+            disabled={publishing || anyPublishing || !selectedAdSetId}
             className="px-6 py-2.5 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {publishing ? "Publishing…" : `Publish ${jobs.length} Ad${jobs.length !== 1 ? "s" : ""} to Meta`}
