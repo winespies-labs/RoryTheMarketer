@@ -6,6 +6,10 @@ import {
   createAdCreative,
   createAd,
   fetchAdSetsLive,
+  fetchCampaignsLive,
+  fetchAudiencesLive,
+  createAdSet,
+  type NewAdSetInput,
 } from "@/lib/meta-publish";
 
 export const maxDuration = 120;
@@ -29,6 +33,37 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  if (action === "preflight") {
+    const missing: string[] = [];
+    if (!process.env.META_ACCESS_TOKEN) missing.push("META_ACCESS_TOKEN");
+    const brandObj = getBrand(brand);
+    if (!brandObj?.metaPageId && !process.env.META_PAGE_ID)
+      missing.push("META_PAGE_ID");
+    return NextResponse.json({ ok: missing.length === 0, missing });
+  }
+
+  if (action === "campaigns") {
+    try {
+      const campaigns = await fetchCampaignsLive(brand);
+      return NextResponse.json({ campaigns });
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to fetch campaigns";
+      return NextResponse.json({ error: msg }, { status: 500 });
+    }
+  }
+
+  if (action === "audiences") {
+    try {
+      const audiences = await fetchAudiencesLive(brand);
+      return NextResponse.json({ audiences });
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to fetch audiences";
+      return NextResponse.json({ error: msg }, { status: 500 });
+    }
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
 
@@ -46,6 +81,7 @@ interface PublishJob {
 interface PublishRequest {
   brand: string;
   adSetId: string | null;
+  newAdSet?: NewAdSetInput;
   jobs: PublishJob[];
 }
 
@@ -57,17 +93,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { brand, adSetId, jobs } = body;
+  const { brand, adSetId, newAdSet, jobs } = body;
 
   if (!getBrand(brand)) {
     return NextResponse.json({ error: "Unknown brand" }, { status: 400 });
   }
 
-  if (!adSetId) {
-    return NextResponse.json(
-      { error: "New ad set creation requires a campaign ID. Please select an existing ad set." },
-      { status: 400 }
-    );
+  let resolvedAdSetId = adSetId;
+
+  if (!resolvedAdSetId) {
+    if (!newAdSet) {
+      return NextResponse.json(
+        { error: "Must provide adSetId or newAdSet" },
+        { status: 400 },
+      );
+    }
+    try {
+      const { id } = await createAdSet(brand, newAdSet);
+      resolvedAdSetId = id;
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to create ad set";
+      return NextResponse.json(
+        { error: `Ad set creation failed: ${msg}` },
+        { status: 500 },
+      );
+    }
   }
 
   if (!jobs?.length) {
@@ -89,7 +140,7 @@ export async function POST(req: NextRequest) {
         });
         const { id: adId } = await createAd(brand, {
           name: `PDP — ${job.wineName}`,
-          adsetId: adSetId,
+          adsetId: resolvedAdSetId,
           creativeId,
           status: "ACTIVE",
         });
