@@ -126,13 +126,13 @@ function PDPBuilderInner() {
   }, [goToStep, styles, selectedStyleIds, feed.selectedContexts, overrides, generator]);
 
   const handleRegenerate = useCallback(
-    async (jobId: string) => {
+    async (jobId: string, fixInstruction?: string) => {
       const job = generator.jobs.find((j) => j.id === jobId);
       if (!job) return;
       const ctx = feed.selectedContexts.find((c) => c.sale_id === job.saleId);
       const style = styles.find((s) => s.id === job.styleId);
       if (!ctx || !style) return;
-      await generator.regenerate(jobId, ctx, style, overrides[job.saleId] ?? {});
+      await generator.regenerate(jobId, ctx, style, overrides[job.saleId] ?? {}, "winespies", fixInstruction);
     },
     [generator, feed.selectedContexts, styles, overrides]
   );
