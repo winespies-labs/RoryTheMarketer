@@ -1,3 +1,4 @@
+// app/creative/pdp/page.tsx
 "use client";
 
 import { useCallback, useState, Suspense } from "react";
@@ -7,16 +8,19 @@ import Link from "next/link";
 import { useFeed } from "./hooks/useFeed";
 import { useStyles } from "./hooks/useStyles";
 import { useGenerator, type WineOverrides } from "./hooks/useGenerator";
+import { useBatchMapping } from "./hooks/useBatchMapping";
 import WineSelector from "./components/WineSelector";
 import StyleSelector from "./components/StyleSelector";
 import DataReview from "./components/DataReview";
 import ResultsGrid from "./components/ResultsGrid";
+import PublishPanel from "./components/PublishPanel";
 
 const STEPS = [
   { num: 1, label: "Select Wines" },
   { num: 2, label: "Select Styles" },
-  { num: 3, label: "Review Data" },
+  { num: 3, label: "Review Brief" },
   { num: 4, label: "Generate" },
+  { num: 5, label: "Publish" },
 ];
 
 function StepIndicator({
@@ -78,7 +82,7 @@ function StepIndicator({
 function PDPBuilderInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentStep = Math.max(1, Math.min(4, parseInt(searchParams.get("step") ?? "1", 10)));
+  const currentStep = Math.max(1, Math.min(5, parseInt(searchParams.get("step") ?? "1", 10)));
   const [maxReached, setMaxReached] = useState(currentStep);
   const [selectedStyleIds, setSelectedStyleIds] = useState<string[]>([]);
   const [overrides, setOverrides] = useState<Record<number, WineOverrides>>({});
@@ -86,6 +90,7 @@ function PDPBuilderInner() {
   const feed = useFeed();
   const { styles, loading: stylesLoading, error: stylesError } = useStyles();
   const generator = useGenerator();
+  const batch = useBatchMapping(feed.selectedContexts, selectedStyleIds);
 
   const goToStep = useCallback(
     (step: number) => {
@@ -177,15 +182,20 @@ function PDPBuilderInner() {
         />
       )}
 
-      {currentStep === 3 && (
+      {currentStep === 3 && batch && (
         <DataReview
-          contexts={feed.selectedContexts}
-          selectedStyles={styles.filter((s) => selectedStyleIds.includes(s.id))}
+          batch={batch}
           overrides={overrides}
           onOverride={setOverride}
           onBack={() => goToStep(2)}
           onGenerate={handleGenerate}
         />
+      )}
+
+      {currentStep === 3 && !batch && (
+        <div className="text-center py-16 text-muted text-sm">
+          Select wines and styles first to review the brief.
+        </div>
       )}
 
       {currentStep === 4 && (
@@ -195,6 +205,14 @@ function PDPBuilderInner() {
           progress={generator.progress}
           onRegenerate={handleRegenerate}
           onBack={() => goToStep(3)}
+          onPublish={() => goToStep(5)}
+        />
+      )}
+
+      {currentStep === 5 && (
+        <PublishPanel
+          jobs={generator.jobs.filter((j) => j.status === "complete")}
+          onBack={() => goToStep(4)}
         />
       )}
     </div>
