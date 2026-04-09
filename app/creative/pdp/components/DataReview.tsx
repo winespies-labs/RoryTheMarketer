@@ -15,6 +15,9 @@ const FIELD_TO_OVERRIDE: Partial<Record<string, keyof WineOverrides>> = {
   wine_display_name: "wineName",
   score_badge: "score",
   cta_button: "ctaText",
+  sale_price: "salePrice",
+  retail_price: "retailPrice",
+  bottle_image: "bottleImageUrl",
 };
 
 function statusIcon(status: FieldStatus): string {
