@@ -154,7 +154,8 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           brand: "winespies",
-          adSetId: selectedAdSetId || null,
+          adSetId: destinationMode === "existing" ? selectedAdSetId : null,
+          newAdSet: destinationMode === "new" ? buildNewAdSetInput() : undefined,
           jobs: [
             {
               jobId: job.id,
