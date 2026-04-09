@@ -169,6 +169,187 @@ function PromptEditorPanel({
   );
 }
 
+// ─── AddTemplateCard ──────────────────────────────────────────────────────────
+
+function AddTemplateCard({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-xl border border-dashed border-border bg-surface hover:border-accent/60 hover:bg-accent/5 transition-colors flex flex-col items-center justify-center gap-2 aspect-square text-muted"
+    >
+      <div className="w-8 h-8 rounded-full border-2 border-dashed border-muted/50 flex items-center justify-center text-xl font-light">+</div>
+      <div className="text-xs font-medium">Add Template</div>
+    </button>
+  );
+}
+
+// ─── AddTemplateForm ──────────────────────────────────────────────────────────
+
+function AddTemplateForm({
+  onCancel,
+  onCreated,
+}: {
+  onCancel: () => void;
+  onCreated: () => void;
+}) {
+  const [image, setImage] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string>("");
+  const [name, setName] = useState("");
+  const [prompt, setPrompt] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function handleImageChange(file: File) {
+    setImage(file);
+    const reader = new FileReader();
+    reader.onload = (e) => setPreview((e.target?.result as string) ?? "");
+    reader.readAsDataURL(file);
+  }
+
+  async function handleAutoGenerate() {
+    if (!image) return;
+    setGenerating(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("image", image);
+      const res = await fetch("/api/ad-reference/generate-prompt", { method: "POST", body: fd });
+      if (!res.ok) {
+        const d = await res.json() as { error?: string };
+        throw new Error(d.error ?? "Generation failed");
+      }
+      const data = await res.json() as { prompt: string };
+      setPrompt(data.prompt);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Auto-generate failed");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function handleCreate() {
+    if (!image || !name.trim() || !prompt.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("image", image);
+      fd.append(
+        "data",
+        JSON.stringify({ label: name.trim(), brand: "winespies", generationPrompt: prompt.trim() })
+      );
+      const res = await fetch("/api/ad-reference/create", { method: "POST", body: fd });
+      if (!res.ok) {
+        const d = await res.json() as { error?: string };
+        throw new Error(d.error ?? "Create failed");
+      }
+      onCreated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create template");
+      setSaving(false);
+    }
+  }
+
+  const canCreate = !!image && name.trim().length > 0 && prompt.trim().length > 0;
+
+  return (
+    <div className="col-span-full border border-border rounded-xl bg-surface p-5 flex flex-col gap-4">
+      <div className="text-sm font-semibold text-foreground">Add New Template</div>
+      <div className="grid grid-cols-[140px_1fr] gap-4">
+        {/* Image upload */}
+        <div className="flex flex-col gap-2">
+          <label className="block">
+            <div
+              className={`aspect-square rounded-lg border-2 border-dashed overflow-hidden cursor-pointer flex flex-col items-center justify-center gap-2 transition-colors ${
+                preview ? "border-accent/40" : "border-border hover:border-accent/40"
+              }`}
+            >
+              {preview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+              ) : (
+                <>
+                  <svg className="w-6 h-6 text-muted/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-[10px] text-muted/60 text-center px-2">Click to upload<br/>PNG or JPG</span>
+                </>
+              )}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="sr-only"
+                onChange={(e) => e.target.files?.[0] && handleImageChange(e.target.files[0])}
+              />
+            </div>
+          </label>
+        </div>
+
+        {/* Fields */}
+        <div className="flex flex-col gap-3">
+          <div>
+            <label className="block text-[10px] font-semibold text-muted uppercase tracking-wide mb-1">
+              Template Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Lifestyle — Warm Tones"
+              className="w-full px-3 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+          </div>
+
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[10px] font-semibold text-muted uppercase tracking-wide">
+                Generation Prompt
+              </label>
+              <button
+                type="button"
+                onClick={handleAutoGenerate}
+                disabled={!image || generating}
+                className="text-[10px] text-accent hover:text-accent/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {generating ? "Generating…" : "✨ Auto-generate from image"}
+              </button>
+            </div>
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              rows={8}
+              placeholder={image ? "Click Auto-generate or write the Gemini prompt manually…" : "Upload an image first, then auto-generate or write manually…"}
+              className="w-full px-3 py-2 text-xs font-mono border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-accent resize-y"
+            />
+          </div>
+
+          {error && <div className="text-xs text-danger">{error}</div>}
+
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-3 py-1.5 text-xs text-muted hover:text-foreground transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={!canCreate || saving}
+              className="px-4 py-1.5 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? "Creating…" : "Create Template"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── StyleSelector ────────────────────────────────────────────────────────────
 
 interface StyleSelectorProps {
@@ -196,13 +377,11 @@ export default function StyleSelector({
 }: StyleSelectorProps) {
   const totalAds = selectedWineCount * selected.length;
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [addingTemplate, setAddingTemplate] = useState(false);
 
   const toggleEdit = useCallback((id: string) => {
     setEditingId((prev) => (prev === id ? null : id));
   }, []);
-
-  // onStylesRefresh is wired for Task 4 (Add Template)
-  void onStylesRefresh;
 
   return (
     <div className="flex flex-col gap-4">
@@ -265,21 +444,18 @@ export default function StyleSelector({
             </Fragment>
           ))}
 
-          {/* Add Template card — placeholder stub, replaced in Task 4 */}
-          <button
-            type="button"
-            className="rounded-xl border border-dashed border-border bg-surface hover:border-accent/50 transition-colors flex flex-col items-center justify-center gap-2 aspect-square text-muted"
-            disabled
-          >
-            <div className="w-8 h-8 rounded-full border-2 border-dashed border-muted/40 flex items-center justify-center text-lg text-muted/40">+</div>
-            <div className="text-xs text-muted/50 text-center">Add Template<br/>(coming soon)</div>
-          </button>
-        </div>
-      )}
-
-      {!loading && !error && styles.length === 0 && (
-        <div className="text-center py-8 text-muted text-sm">
-          No templates yet. Add one using the + card above.
+          {addingTemplate ? null : (
+            <AddTemplateCard onClick={() => setAddingTemplate(true)} />
+          )}
+          {addingTemplate && (
+            <AddTemplateForm
+              onCancel={() => setAddingTemplate(false)}
+              onCreated={() => {
+                setAddingTemplate(false);
+                onStylesRefresh();
+              }}
+            />
+          )}
         </div>
       )}
     </div>
