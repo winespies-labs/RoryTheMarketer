@@ -26,6 +26,11 @@ interface JobPublishState {
   metaAdId?: string;
 }
 
+interface Preflight {
+  ok: boolean;
+  missing: string[];
+}
+
 function buildDefaultCopy(job: GenerationJob): AdCopy {
   return {
     headline: job.wineName,
@@ -56,6 +61,7 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
     });
   }, [jobs]);
   const [publishing, setPublishing] = useState(false);
+  const [preflight, setPreflight] = useState<Preflight | null>(null);
 
   useEffect(() => {
     async function loadAdSets() {
@@ -74,6 +80,22 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
     loadAdSets();
   }, []);
 
+  useEffect(() => {
+    async function checkPreflight() {
+      try {
+        const res = await fetch(
+          "/api/pdp/publish?action=preflight&brand=winespies",
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as Preflight;
+        setPreflight(data);
+      } catch {
+        // silent — publish attempt will surface the real error
+      }
+    }
+    checkPreflight();
+  }, []);
+
   function updateCopy(jobId: string, field: keyof AdCopy, value: string) {
     setJobStates((prev) => ({
       ...prev,
@@ -82,6 +104,72 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
         copy: { ...prev[jobId].copy, [field]: value },
       },
     }));
+  }
+
+  async function handleRetry(jobId: string) {
+    const job = jobs.find((j) => j.id === jobId);
+    if (!job?.imageBase64) return;
+
+    setJobStates((prev) => ({
+      ...prev,
+      [jobId]: { ...prev[jobId], status: "publishing", error: undefined },
+    }));
+
+    try {
+      const res = await fetch("/api/pdp/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brand: "winespies",
+          adSetId: selectedAdSetId || null,
+          jobs: [
+            {
+              jobId: job.id,
+              imageBase64: job.imageBase64,
+              mimeType: job.mimeType,
+              wineName: job.wineName,
+              ...jobStates[jobId].copy,
+              saleUrl: `https://winespies.com/sales/${job.saleId}`,
+            },
+          ],
+        }),
+      });
+      const data = (await res.json()) as {
+        results: Array<{
+          jobId: string;
+          success: boolean;
+          adId?: string;
+          error?: string;
+        }>;
+        error?: string;
+      };
+      const r = data.results?.[0];
+      if (r) {
+        setJobStates((prev) => ({
+          ...prev,
+          [jobId]: {
+            ...prev[jobId],
+            status: r.success ? "done" : "error",
+            metaAdId: r.adId,
+            error: r.error,
+          },
+        }));
+      } else if (data.error) {
+        setJobStates((prev) => ({
+          ...prev,
+          [jobId]: { ...prev[jobId], status: "error", error: data.error },
+        }));
+      }
+    } catch (err) {
+      setJobStates((prev) => ({
+        ...prev,
+        [jobId]: {
+          ...prev[jobId],
+          status: "error",
+          error: err instanceof Error ? err.message : "Retry failed",
+        },
+      }));
+    }
   }
 
   async function handlePublish() {
@@ -155,6 +243,17 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
 
   return (
     <div className="flex flex-col gap-4">
+      {preflight && !preflight.ok && (
+        <div className="rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger">
+          <p className="font-semibold mb-1">Meta configuration missing</p>
+          <p className="text-xs">
+            Set the following environment variables to enable publishing:{" "}
+            <code className="font-mono bg-danger/10 px-1 rounded">
+              {preflight.missing.join(", ")}
+            </code>
+          </p>
+        </div>
+      )}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Publish to Meta</h2>
@@ -242,12 +341,36 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
                   </div>
                 </div>
                 <div className="shrink-0 flex items-start pt-1">
-                  {state.status === "idle" && <span className="text-xs text-muted">Ready</span>}
-                  {state.status === "publishing" && <span className="text-xs text-accent animate-pulse">Publishing…</span>}
-                  {state.status === "done" && <span className="text-xs text-success font-medium">✅ Published</span>}
-                  {state.status === "error" && <span className="text-xs text-danger" title={state.error}>Failed</span>}
+                  {state.status === "idle" && (
+                    <span className="text-xs text-muted">Ready</span>
+                  )}
+                  {state.status === "publishing" && (
+                    <span className="text-xs text-accent animate-pulse">
+                      Publishing…
+                    </span>
+                  )}
+                  {state.status === "done" && (
+                    <span className="text-xs text-success font-medium">
+                      ✅ Published
+                    </span>
+                  )}
+                  {state.status === "error" && (
+                    <button
+                      onClick={() => handleRetry(job.id)}
+                      className="text-xs text-accent underline hover:no-underline"
+                    >
+                      Retry
+                    </button>
+                  )}
                 </div>
               </div>
+              {state.status === "error" && state.error && (
+                <div className="px-4 pb-3">
+                  <p className="text-xs text-danger bg-danger/5 border border-danger/20 rounded-lg px-3 py-2">
+                    {state.error}
+                  </p>
+                </div>
+              )}
             </div>
           );
         })}
@@ -257,7 +380,7 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
         <div className="flex justify-end">
           <button
             onClick={handlePublish}
-            disabled={publishing || anyPublishing || !selectedAdSetId}
+            disabled={publishing || anyPublishing || !selectedAdSetId || preflight?.ok === false}
             className="px-6 py-2.5 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {publishing ? "Publishing…" : `Publish ${jobs.length} Ad${jobs.length !== 1 ? "s" : ""} to Meta`}
