@@ -6,6 +6,7 @@ import Sidebar from "./components/Sidebar";
 import MarkdownEditor from "./components/MarkdownEditor";
 import MetaCommentsPanel from "./components/MetaCommentsPanel";
 import BrandAssetsPanel from "./components/BrandAssetsPanel";
+import ReviewsPanel from "./components/ReviewsPanel";
 
 const BRAND_ID = "winespies";
 
@@ -45,6 +46,8 @@ export default function ContextHubPage() {
         return <MetaCommentsPanel />;
       case "brand-assets":
         return <BrandAssetsPanel onChanged={fetchStatus} />;
+      case "reviews":
+        return <ReviewsPanel />;
       default:
         return null;
     }

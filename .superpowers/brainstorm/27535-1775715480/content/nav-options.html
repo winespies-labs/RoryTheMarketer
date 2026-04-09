@@ -1,0 +1,62 @@
+<h2>How should the sidebar navigation be restructured?</h2>
+<p class="subtitle">Current: Home + Reviews float at top, 4 collapsible groups, Chat at bottom. Context Hub sub-items all point to the same page.</p>
+
+<div class="options">
+  <div class="option" data-choice="flatten" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Flatten &amp; Clean Up</h3>
+      <p>Remove the "Overview" sub-items from each group (they're redundant — the group header can link directly). Roll Reviews into a section. Remove the floaters.</p>
+      <div style="margin-top:12px; padding:12px; background:#f5f3ff; border-radius:8px; font-size:12px; font-family:monospace; color:#4c1d95; line-height:1.8;">
+        Home<br/>
+        ─── Context Hub<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;Brand DNA · Strategy · Creative Ops<br/>
+        ─── Copywriting<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;Editor · Library · Swipes<br/>
+        ─── Creative<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;Briefs · Wines · Ad Builder · IG Research<br/>
+        ─── Performance<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;Reviews · Ads Manager · Campaigns…<br/>
+        Chat
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="icons" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Add Icons + Tighten Labels</h3>
+      <p>Keep the current structure but add a small icon to each group header and top-level link. Remove the redundant "Overview" items. Gives the nav more visual anchors.</p>
+      <div style="margin-top:12px; padding:12px; background:#f0fdf4; border-radius:8px; font-size:12px; line-height:1.8; color:#166534;">
+        🏠 Home &nbsp;&nbsp; ⭐ Reviews<br/>
+        ──────────────────<br/>
+        📚 Context Hub ▾<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;Brand DNA · Strategy · Creative Ops<br/>
+        ✏️ Copywriting ▾<br/>
+        🎨 Creative ▾<br/>
+        📊 Ads Manager ▾<br/>
+        ──────────────────<br/>
+        💬 Chat
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="sections" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Section Labels (Always Visible)</h3>
+      <p>Replace collapsible groups with always-visible sections separated by labeled dividers. Fewer clicks to navigate, nothing hidden.</p>
+      <div style="margin-top:12px; padding:12px; background:#fefce8; border-radius:8px; font-size:12px; line-height:1.8; color:#713f12; font-family:monospace;">
+        Home<br/>
+        <span style="font-size:10px; letter-spacing:0.1em; color:#92400e;">CONTENT</span><br/>
+        Brand DNA · Strategy<br/>
+        Creative Ops · Reviews<br/>
+        <span style="font-size:10px; letter-spacing:0.1em; color:#92400e;">COPYWRITING</span><br/>
+        Editor · Library · Swipes<br/>
+        <span style="font-size:10px; letter-spacing:0.1em; color:#92400e;">CREATIVE</span><br/>
+        Briefs · Wines · Ad Builder<br/>
+        <span style="font-size:10px; letter-spacing:0.1em; color:#92400e;">PERFORMANCE</span><br/>
+        Ads Manager · IG Research<br/>
+        Chat
+      </div>
+    </div>
+  </div>
+</div>

@@ -193,6 +193,13 @@ export async function listReviewsForApi(
   if (filters.starredOnly) {
     reviews = reviews.filter((r) => !!r.starred);
   }
+  if (filters.source) {
+    reviews = reviews.filter((r) => r.source === filters.source);
+  }
+  if (filters.minRating && filters.minRating > 0) {
+    const min = filters.minRating;
+    reviews = reviews.filter((r) => !!r.rating && r.rating >= min);
+  }
   const matchCount = reviews.length;
   const page = reviews.slice(
     filters.offset,

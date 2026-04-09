@@ -44,6 +44,7 @@ export interface ReviewSnippet {
   title?: string;
   content: string;
   source?: ReviewSource;
+  rating?: number;
   starred?: boolean;
   topics?: string[];
 }

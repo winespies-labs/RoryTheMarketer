@@ -1,4 +1,4 @@
-export type SectionType = "markdown" | "meta-comments" | "brand-assets";
+export type SectionType = "markdown" | "meta-comments" | "brand-assets" | "reviews";
 
 export interface SectionDef {
   id: string;
@@ -49,6 +49,15 @@ export const CATEGORIES: CategoryDef[] = [
     sections: [
       { id: "brand-assets", label: "Brand Assets", type: "brand-assets" },
       { id: "meta-comments", label: "Meta Ad Comments", type: "meta-comments" },
+    ],
+  },
+  {
+    id: "voice-of-customer",
+    number: 4,
+    title: "Voice of Customer",
+    subtitle: "Reviews & Social Proof",
+    sections: [
+      { id: "customer-reviews", label: "Customer Reviews", type: "reviews" },
     ],
   },
 ];

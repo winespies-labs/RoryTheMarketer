@@ -18,7 +18,13 @@ export async function GET(req: NextRequest) {
 
   const q = req.nextUrl.searchParams.get("q") ?? undefined;
   const topic = req.nextUrl.searchParams.get("topic") ?? undefined;
+  const source = req.nextUrl.searchParams.get("source") ?? undefined;
   const starredOnly = parseBool(req.nextUrl.searchParams.get("starred"));
+  const minRating =
+    Math.max(
+      Number.parseInt(req.nextUrl.searchParams.get("minRating") ?? "0", 10) || 0,
+      0
+    ) || undefined;
   const limit = Math.min(
     Math.max(Number.parseInt(req.nextUrl.searchParams.get("limit") ?? "60", 10) || 60, 1),
     200
@@ -39,6 +45,8 @@ export async function GET(req: NextRequest) {
     q,
     topic,
     starredOnly,
+    source,
+    minRating,
     limit,
     offset,
   });
@@ -48,6 +56,7 @@ export async function GET(req: NextRequest) {
     title: r.title,
     content: r.content,
     source: r.source,
+    rating: r.rating,
     starred: r.starred,
     topics: r.topics,
   }));

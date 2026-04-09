@@ -190,6 +190,8 @@ export interface ListReviewsFilters {
   q?: string;
   topic?: string;
   starredOnly?: boolean;
+  source?: string;
+  minRating?: number;
   limit: number;
   offset: number;
 }
@@ -226,6 +228,12 @@ export async function listReviewsFromDb(
   }
   if (filters.starredOnly) {
     andParts.push({ starred: true });
+  }
+  if (filters.source) {
+    andParts.push({ source: filters.source });
+  }
+  if (filters.minRating && filters.minRating > 0) {
+    andParts.push({ rating: { gte: filters.minRating } });
   }
   const where: Prisma.CustomerReviewWhereInput =
     andParts.length === 1 ? { brandId } : { AND: andParts };
