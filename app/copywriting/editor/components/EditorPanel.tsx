@@ -1,6 +1,8 @@
 "use client";
 
 import { getFKLevel, type FKResult } from "@/lib/flesch-kincaid";
+import { applyMarkdown } from "@/lib/markdown-utils";
+import MarkdownToolbar from "./MarkdownToolbar";
 
 interface EditorPanelProps {
   title: string;
@@ -31,6 +33,20 @@ export default function EditorPanel({
         ? "text-amber-600 bg-amber-50 border-amber-400"
         : "text-danger bg-red-50 border-danger";
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (!(e.metaKey || e.ctrlKey)) return;
+    if (e.key === "b" || e.key === "i") {
+      e.preventDefault();
+      const textarea = e.currentTarget;
+      const result = applyMarkdown(textarea, e.key === "b" ? "bold" : "italic");
+      onContentChange(result.value);
+      requestAnimationFrame(() => {
+        textarea.focus();
+        textarea.setSelectionRange(result.selectionStart, result.selectionEnd);
+      });
+    }
+  }
+
   return (
     <div className="flex flex-col h-full">
       <input
@@ -41,10 +57,14 @@ export default function EditorPanel({
         className="w-full px-4 py-3 border border-border rounded-xl bg-surface text-lg font-medium focus:outline-none focus:border-accent transition-colors mb-3"
       />
 
+      {textareaRef && (
+        <MarkdownToolbar textareaRef={textareaRef} onChange={onContentChange} />
+      )}
       <textarea
         ref={textareaRef}
         value={content}
         onChange={(e) => onContentChange(e.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder="Start writing your wine write-up here..."
         className="flex-1 w-full min-h-[400px] px-4 py-3 border border-border rounded-xl bg-surface text-sm leading-relaxed resize-y focus:outline-none focus:border-accent transition-colors"
       />
