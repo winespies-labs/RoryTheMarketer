@@ -30,7 +30,9 @@ export function applyMarkdown(
       if (
         selected.startsWith(marker) &&
         selected.endsWith(marker) &&
-        selected.length > marker.length * 2
+        selected.length > marker.length * 2 &&
+        // For italic (*), ensure it's not actually bold (**) wrapped text
+        !(marker === "*" && selected.startsWith("**") && selected.endsWith("**"))
       ) {
         const inner = selected.slice(marker.length, -marker.length);
         const newValue =
@@ -89,7 +91,7 @@ export function applyMarkdown(
     const allHave = lines.every((l) => olRegex.test(l));
     newLines = allHave
       ? lines.map((l) => l.replace(olRegex, ""))
-      : lines.map((l, i) => (olRegex.test(l) ? l : `${i + 1}. ${l}`));
+      : lines.map((l, i) => `${i + 1}. ${l.replace(olRegex, "")}`);
   }
 
   const newBlock = newLines.join("\n");
@@ -113,5 +115,6 @@ export function stripMarkdownForFK(text: string): string {
     .replace(/\*(.+?)\*/g, "$1")      // *italic*
     .replace(/^#{1,6} /gm, "")        // # headings
     .replace(/^- /gm, "")             // - bullets
-    .replace(/^\d+\. /gm, "");        // 1. numbered lists
+    .replace(/^\d+\. /gm, "")         // 1. numbered lists
+    .replace(/\*+/g, "");             // orphaned asterisks from multiline spans
 }
