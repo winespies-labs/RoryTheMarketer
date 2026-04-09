@@ -90,7 +90,8 @@ function PDPBuilderInner() {
   const feed = useFeed();
   const { styles, loading: stylesLoading, error: stylesError, refresh: refreshStyles } = useStyles();
   const generator = useGenerator();
-  const batch = useBatchMapping(feed.selectedContexts, selectedStyleIds);
+  const selectedStyles = styles.filter((s) => selectedStyleIds.includes(s.id));
+  const batch = useBatchMapping(feed.selectedContexts, selectedStyles);
 
   const goToStep = useCallback(
     (step: number) => {

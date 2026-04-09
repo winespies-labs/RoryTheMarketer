@@ -457,16 +457,18 @@ export interface BatchMappingResult {
 
 /**
  * Resolves N wines × M templates into a BatchMappingResult.
- * Call this after the user selects wines and templates.
- * Templates with no schema in TEMPLATE_SCHEMAS are silently skipped.
+ * Templates with a TEMPLATE_SCHEMAS entry get full field validation.
+ * Templates without a schema entry get a stub result (always ready, no fields).
  */
 export function resolveBatchMappings(
   contexts: WineAdContext[],
-  templateIds: string[]
+  styles: { id: string; name: string }[]
 ): BatchMappingResult {
+  const knownIds = new Set(TEMPLATE_SCHEMAS.map((s) => s.template_id));
   const schemas = TEMPLATE_SCHEMAS.filter((s) =>
-    templateIds.includes(s.template_id)
+    styles.some((style) => style.id === s.template_id)
   );
+  const stubStyles = styles.filter((style) => !knownIds.has(style.id));
 
   const mappings: Record<string, TemplateMappingResult> = {};
   let ready = 0;
@@ -480,13 +482,32 @@ export function resolveBatchMappings(
       if (result.can_generate) ready++;
       else blocked++;
     }
+    for (const style of stubStyles) {
+      const key = `${context.sale_id}:${style.id}`;
+      mappings[key] = {
+        template_id: style.id,
+        template_name: style.name,
+        wine_display_name: context.display_name,
+        sale_id: context.sale_id,
+        can_generate: true,
+        blocking_fields: [],
+        fields: [],
+      };
+      ready++;
+    }
   }
+
+  const stubSchemas: TemplateSchema[] = stubStyles.map((s) => ({
+    template_id: s.id,
+    template_name: s.name,
+    fields: [],
+  }));
 
   return {
     wines: contexts,
-    schemas,
+    schemas: [...schemas, ...stubSchemas],
     mappings,
-    total_ads: contexts.length * schemas.length,
+    total_ads: contexts.length * styles.length,
     ready_to_generate: ready,
     blocked,
   };

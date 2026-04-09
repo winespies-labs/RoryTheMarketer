@@ -1,4 +1,3 @@
-// app/creative/pdp/hooks/useBatchMapping.ts
 "use client";
 
 import { useMemo } from "react";
@@ -9,15 +8,15 @@ import {
 } from "../../ad-builder/_shared/wineAdContext";
 
 /**
- * Wraps resolveBatchMappings. Re-runs whenever selected wines or template IDs change.
+ * Wraps resolveBatchMappings. Re-runs whenever selected wines or styles change.
  * Returns null when either list is empty.
  */
 export function useBatchMapping(
   contexts: WineAdContext[],
-  templateIds: string[]
+  styles: { id: string; name: string }[]
 ): BatchMappingResult | null {
   return useMemo(() => {
-    if (contexts.length === 0 || templateIds.length === 0) return null;
-    return resolveBatchMappings(contexts, templateIds);
-  }, [contexts, templateIds]);
+    if (contexts.length === 0 || styles.length === 0) return null;
+    return resolveBatchMappings(contexts, styles);
+  }, [contexts, styles]);
 }
