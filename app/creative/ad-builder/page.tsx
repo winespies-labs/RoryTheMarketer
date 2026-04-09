@@ -11,7 +11,7 @@ export default function AdBuilderLanding() {
       <div className="grid gap-6 sm:grid-cols-2">
         {/* PDP Feed Builder */}
         <Link
-          href="/creative/ad-builder/pdp"
+          href="/creative/pdp"
           className="group rounded-xl border border-border bg-surface p-7 hover:border-accent transition-colors flex flex-col gap-3"
         >
           <div className="flex items-center gap-3">

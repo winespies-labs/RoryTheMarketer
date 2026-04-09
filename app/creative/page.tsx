@@ -4,7 +4,7 @@ const sections = [
   {
     title: "PDP Builder",
     description: "Generate ads from today's live wine feed. Scale production with feed-accurate templates.",
-    href: "/creative/ad-builder/pdp",
+    href: "/creative/pdp",
     badge: "New",
   },
   {
@@ -17,12 +17,6 @@ const sections = [
     title: "Wines",
     description: "Manage wine products and generate ad copy for your wine portfolio.",
     href: "/wines",
-    badge: null,
-  },
-  {
-    title: "Ad Builder",
-    description: "Build ads step-by-step with templates, images, and brand assets.",
-    href: "/ad-builder",
     badge: null,
   },
   {
