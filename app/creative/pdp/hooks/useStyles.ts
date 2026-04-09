@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export interface AdStyle {
   id: string;
   name: string;
-  addedAt: string;
   imageBase64: string;
   mimeType: string;
 }
@@ -14,6 +13,9 @@ export function useStyles(brand = "winespies") {
   const [styles, setStyles] = useState<AdStyle[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   useEffect(() => {
     setLoading(true);
@@ -30,7 +32,7 @@ export function useStyles(brand = "winespies") {
         setError(err instanceof Error ? err.message : "Failed to load styles");
         setLoading(false);
       });
-  }, [brand]);
+  }, [brand, refreshKey]);
 
-  return { styles, loading, error };
+  return { styles, loading, error, refresh };
 }

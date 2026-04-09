@@ -88,7 +88,7 @@ function PDPBuilderInner() {
   const [overrides, setOverrides] = useState<Record<number, WineOverrides>>({});
 
   const feed = useFeed();
-  const { styles, loading: stylesLoading, error: stylesError } = useStyles();
+  const { styles, loading: stylesLoading, error: stylesError, refresh: refreshStyles } = useStyles();
   const generator = useGenerator();
   const batch = useBatchMapping(feed.selectedContexts, selectedStyleIds);
 
@@ -179,6 +179,7 @@ function PDPBuilderInner() {
           onBack={() => goToStep(1)}
           onNext={() => goToStep(3)}
           selectedWineCount={feed.selected.length}
+          onStylesRefresh={refreshStyles}
         />
       )}
 

@@ -66,6 +66,7 @@ interface StyleSelectorProps {
   onBack: () => void;
   onNext: () => void;
   selectedWineCount: number;
+  onStylesRefresh?: () => void;
 }
 
 export default function StyleSelector({
