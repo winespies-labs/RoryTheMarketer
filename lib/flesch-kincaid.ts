@@ -3,6 +3,8 @@
  * Formula: 0.39 × (words/sentences) + 11.8 × (syllables/words) − 15.59
  */
 
+import { stripMarkdownForFK } from "@/lib/markdown-utils";
+
 function countSyllables(word: string): number {
   const w = word.toLowerCase().replace(/[^a-z]/g, "");
   if (w.length <= 2) return w.length > 0 ? 1 : 0;
@@ -52,17 +54,18 @@ export interface FKResult {
 }
 
 export function calculateFK(text: string): FKResult {
-  if (!text.trim()) {
+  const plain = stripMarkdownForFK(text);
+  if (!plain.trim()) {
     return { gradeLevel: 0, words: 0, sentences: 0, syllables: 0 };
   }
 
-  const words = countWords(text);
+  const words = countWords(plain);
   if (words === 0) {
     return { gradeLevel: 0, words: 0, sentences: 0, syllables: 0 };
   }
 
-  const sentences = countSentences(text);
-  const syllables = text
+  const sentences = countSentences(plain);
+  const syllables = plain
     .trim()
     .split(/\s+/)
     .filter((w) => w.replace(/[^a-zA-Z0-9]/g, "").length > 0)
