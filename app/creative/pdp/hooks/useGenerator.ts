@@ -80,12 +80,13 @@ function buildWineData(ctx: WineAdContext, overrides: WineOverrides = {}) {
 async function callGenerate(
   brand: string,
   styleId: string,
-  wineData: ReturnType<typeof buildWineData>
+  wineData: ReturnType<typeof buildWineData>,
+  fixInstruction?: string
 ): Promise<{ imageBase64: string; mimeType: string }> {
   const res = await fetch("/api/pdp/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ brand, styleId, wineData }),
+    body: JSON.stringify({ brand, styleId, wineData, fixInstruction }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
@@ -158,12 +159,13 @@ export function useGenerator() {
       ctx: WineAdContext,
       style: { id: string; name: string },
       overrides: WineOverrides,
-      brand = "winespies"
+      brand = "winespies",
+      fixInstruction?: string
     ) => {
       updateJob(jobId, { status: "generating", error: undefined });
       try {
         const wineData = buildWineData(ctx, overrides);
-        const data = await callGenerate(brand, style.id, wineData);
+        const data = await callGenerate(brand, style.id, wineData, fixInstruction);
         updateJob(jobId, { status: "complete", imageBase64: data.imageBase64, mimeType: data.mimeType });
       } catch (err) {
         updateJob(jobId, {
