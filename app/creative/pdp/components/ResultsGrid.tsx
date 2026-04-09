@@ -103,6 +103,7 @@ interface ResultsGridProps {
   progress: { total: number; complete: number; error: number; generating: number };
   onRegenerate: (id: string) => void;
   onBack: () => void;
+  onPublish: () => void;
 }
 
 export default function ResultsGrid({
@@ -111,6 +112,7 @@ export default function ResultsGrid({
   progress,
   onRegenerate,
   onBack,
+  onPublish,
 }: ResultsGridProps) {
   const completedJobs = jobs.filter((j) => j.imageBase64);
 
@@ -139,9 +141,17 @@ export default function ResultsGrid({
           {completedJobs.length > 0 && (
             <button
               onClick={downloadAll}
-              className="px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent/90 transition-colors"
+              className="px-4 py-2 bg-surface border border-border text-foreground text-sm font-medium rounded-lg hover:bg-background transition-colors"
             >
               Download All ({completedJobs.length})
+            </button>
+          )}
+          {completedJobs.length > 0 && !running && (
+            <button
+              onClick={onPublish}
+              className="px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent/90 transition-colors"
+            >
+              Publish to Meta ({completedJobs.length}) →
             </button>
           )}
         </div>
