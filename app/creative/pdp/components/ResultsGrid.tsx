@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { GenerationJob } from "../hooks/useGenerator";
 
 function downloadImage(job: GenerationJob) {
@@ -30,11 +31,23 @@ function StatusPill({ status, error }: { status: GenerationJob["status"]; error?
 
 function JobCard({
   job,
+  running,
+  expanded,
+  fixInstruction,
+  onToggleExpand,
+  onFixInstructionChange,
   onRegenerate,
 }: {
   job: GenerationJob;
-  onRegenerate: () => void;
+  running: boolean;
+  expanded: boolean;
+  fixInstruction: string;
+  onToggleExpand: () => void;
+  onFixInstructionChange: (value: string) => void;
+  onRegenerate: (fixInstruction?: string) => void;
 }) {
+  const canRegenerate = !running && (job.status === "complete" || job.status === "error");
+
   return (
     <div className="border border-border rounded-xl overflow-hidden bg-surface flex flex-col">
       {/* Image area */}
@@ -72,12 +85,12 @@ function JobCard({
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          {job.status === "error" && (
+          {canRegenerate && (
             <button
-              onClick={onRegenerate}
+              onClick={onToggleExpand}
               className="text-[11px] text-accent hover:underline"
             >
-              Retry
+              {expanded ? "Cancel" : "Regenerate"}
             </button>
           )}
           {job.imageBase64 && (
@@ -93,6 +106,26 @@ function JobCard({
           )}
         </div>
       </div>
+
+      {/* Inline fix panel */}
+      {expanded && (
+        <div className="px-3 pb-3 pt-1 border-t border-border/40 flex flex-col gap-2">
+          <textarea
+            value={fixInstruction}
+            onChange={(e) => onFixInstructionChange(e.target.value)}
+            placeholder="Describe a fix — e.g. make pricing buttons square, 4px radius"
+            rows={2}
+            className="w-full text-xs rounded-lg border border-border bg-background px-2.5 py-2 text-foreground placeholder:text-muted resize-none focus:outline-none focus:ring-1 focus:ring-accent"
+          />
+          <button
+            onClick={() => onRegenerate(fixInstruction || undefined)}
+            disabled={job.status === "generating"}
+            className="self-end px-3 py-1.5 bg-accent text-white text-xs font-medium rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {job.status === "generating" ? "Generating…" : "Regenerate"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -101,7 +134,7 @@ interface ResultsGridProps {
   jobs: GenerationJob[];
   running: boolean;
   progress: { total: number; complete: number; error: number; generating: number };
-  onRegenerate: (id: string) => void;
+  onRegenerate: (id: string, fixInstruction?: string) => void;
   onBack: () => void;
   onPublish: () => void;
 }
@@ -115,6 +148,21 @@ export default function ResultsGrid({
   onPublish,
 }: ResultsGridProps) {
   const completedJobs = jobs.filter((j) => j.imageBase64);
+
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [fixInstructions, setFixInstructions] = useState<Record<string, string>>({});
+
+  const toggleExpand = (id: string) => {
+    setExpandedCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const downloadAll = () => completedJobs.forEach((j) => downloadImage(j));
 
@@ -175,7 +223,14 @@ export default function ResultsGrid({
             <JobCard
               key={job.id}
               job={job}
-              onRegenerate={() => onRegenerate(job.id)}
+              running={running}
+              expanded={expandedCards.has(job.id)}
+              fixInstruction={fixInstructions[job.id] ?? ""}
+              onToggleExpand={() => toggleExpand(job.id)}
+              onFixInstructionChange={(val) =>
+                setFixInstructions((prev) => ({ ...prev, [job.id]: val }))
+              }
+              onRegenerate={(fixInstruction) => onRegenerate(job.id, fixInstruction)}
             />
           ))}
         </div>
