@@ -218,3 +218,276 @@ export function resolveWineAdContext(sale: RawSale): WineAdContext {
     _raw: sale,
   };
 }
+
+// =============================================================================
+// TEMPLATE FIELD SCHEMA
+// Each reference template declares the fields it needs from WineAdContext.
+// This powers the Review Brief field-mapping table.
+// =============================================================================
+
+export type FieldSource = "feed" | "ai_copy" | "ai_image" | "static";
+
+export type FallbackBehavior =
+  | "hide_element"
+  | "omit_field"
+  | "required"
+  | { default: string };
+
+export interface TemplateField {
+  key: string;
+  context_key?: keyof WineAdContext;
+  source: FieldSource;
+  required: boolean;
+  fallback: FallbackBehavior;
+  description: string;
+}
+
+export interface TemplateSchema {
+  template_id: string;   // must match the id returned by /api/pdp/styles
+  template_name: string;
+  fields: TemplateField[];
+}
+
+// =============================================================================
+// TEMPLATE DEFINITIONS
+// Add one entry per reference template in context/Examples/Ads/Static/.
+// template_id must match the `id` field in the corresponding .md frontmatter.
+// =============================================================================
+
+export const TEMPLATE_SCHEMAS: TemplateSchema[] = [
+  {
+    template_id: "winespies_pdp_cult_1",
+    template_name: "Wine Spies PDP Cult 1",
+    fields: [
+      {
+        key: "wine_display_name",
+        context_key: "display_name",
+        source: "feed",
+        required: true,
+        fallback: "required",
+        description: "Vintage + producer + wine name",
+      },
+      {
+        key: "retail_price",
+        context_key: "retail_price",
+        source: "feed",
+        required: true,
+        fallback: "required",
+        description: "Original retail price",
+      },
+      {
+        key: "sale_price",
+        context_key: "sale_price",
+        source: "feed",
+        required: true,
+        fallback: "required",
+        description: "Today's sale price",
+      },
+      {
+        key: "score_badge",
+        context_key: "score_label",
+        source: "feed",
+        required: false,
+        fallback: "hide_element",
+        description: "Points badge — hidden if no score, never defaulted",
+      },
+      {
+        key: "bottle_image",
+        context_key: "composite_image_url",
+        source: "feed",
+        required: true,
+        fallback: "required",
+        description: "Composite bottle image overlaid on background",
+      },
+      {
+        key: "background_image",
+        source: "ai_image",
+        required: true,
+        fallback: "required",
+        description: "AI-generated styled background (Gemini)",
+      },
+      {
+        key: "headline",
+        source: "ai_copy",
+        required: true,
+        fallback: "required",
+        description: "Ad headline — generated at runtime",
+      },
+      {
+        key: "primary_text",
+        source: "ai_copy",
+        required: true,
+        fallback: "required",
+        description: "Primary ad body copy — generated at runtime",
+      },
+      {
+        key: "cta_button",
+        source: "static",
+        required: true,
+        fallback: { default: "GET THIS DEAL" },
+        description: "CTA button text",
+      },
+    ],
+  },
+];
+
+// =============================================================================
+// FIELD MAPPING & VALIDATION
+// =============================================================================
+
+export type FieldStatus =
+  | "ok"
+  | "missing_optional"
+  | "missing_required"
+  | "ai_generated"
+  | "static";
+
+export interface ResolvedField {
+  key: string;
+  description: string;
+  source: FieldSource;
+  status: FieldStatus;
+  value: string | number | boolean | null;
+  fallback_behavior: FallbackBehavior;
+  will_render: boolean;
+}
+
+export interface TemplateMappingResult {
+  template_id: string;
+  template_name: string;
+  wine_display_name: string;
+  sale_id: number;
+  can_generate: boolean;
+  blocking_fields: string[];
+  fields: ResolvedField[];
+}
+
+/**
+ * Resolves a WineAdContext against a TemplateSchema.
+ * Returns a TemplateMappingResult that powers the Review Brief UI.
+ */
+export function resolveTemplateFields(
+  context: WineAdContext,
+  schema: TemplateSchema
+): TemplateMappingResult {
+  const resolvedFields: ResolvedField[] = [];
+  const blockingFields: string[] = [];
+
+  for (const field of schema.fields) {
+    let value: string | number | boolean | null = null;
+    let status: FieldStatus;
+    let will_render = true;
+
+    if (field.source === "static") {
+      value =
+        typeof field.fallback === "object" && "default" in field.fallback
+          ? field.fallback.default
+          : null;
+      status = "static";
+    } else if (field.source === "ai_copy" || field.source === "ai_image") {
+      status = "ai_generated";
+      value = null;
+    } else {
+      // feed source
+      if (field.context_key) {
+        const raw = context[field.context_key];
+        value = raw !== undefined ? (raw as string | number | boolean | null) : null;
+      }
+
+      const isEmpty =
+        value === null || value === undefined || value === "" || value === 0;
+
+      if (isEmpty) {
+        if (field.fallback === "required") {
+          status = "missing_required";
+          will_render = false;
+          blockingFields.push(field.key);
+        } else if (
+          field.fallback === "hide_element" ||
+          field.fallback === "omit_field"
+        ) {
+          status = "missing_optional";
+          will_render = false;
+        } else if (
+          typeof field.fallback === "object" &&
+          "default" in field.fallback
+        ) {
+          value = field.fallback.default;
+          status = "ok";
+        } else {
+          status = "missing_optional";
+          will_render = false;
+        }
+      } else {
+        status = "ok";
+      }
+    }
+
+    resolvedFields.push({
+      key: field.key,
+      description: field.description,
+      source: field.source,
+      status,
+      value: value ?? null,
+      fallback_behavior: field.fallback,
+      will_render,
+    });
+  }
+
+  return {
+    template_id: schema.template_id,
+    template_name: schema.template_name,
+    wine_display_name: context.display_name,
+    sale_id: context.sale_id,
+    can_generate: blockingFields.length === 0,
+    blocking_fields: blockingFields,
+    fields: resolvedFields,
+  };
+}
+
+export interface BatchMappingResult {
+  wines: WineAdContext[];
+  schemas: TemplateSchema[];
+  /** keyed as `${sale_id}:${template_id}` */
+  mappings: Record<string, TemplateMappingResult>;
+  total_ads: number;
+  ready_to_generate: number;
+  blocked: number;
+}
+
+/**
+ * Resolves N wines × M templates into a BatchMappingResult.
+ * Call this after the user selects wines and templates.
+ * Templates with no schema in TEMPLATE_SCHEMAS are silently skipped.
+ */
+export function resolveBatchMappings(
+  contexts: WineAdContext[],
+  templateIds: string[]
+): BatchMappingResult {
+  const schemas = TEMPLATE_SCHEMAS.filter((s) =>
+    templateIds.includes(s.template_id)
+  );
+
+  const mappings: Record<string, TemplateMappingResult> = {};
+  let ready = 0;
+  let blocked = 0;
+
+  for (const context of contexts) {
+    for (const schema of schemas) {
+      const key = `${context.sale_id}:${schema.template_id}`;
+      const result = resolveTemplateFields(context, schema);
+      mappings[key] = result;
+      if (result.can_generate) ready++;
+      else blocked++;
+    }
+  }
+
+  return {
+    wines: contexts,
+    schemas,
+    mappings,
+    total_ads: contexts.length * schemas.length,
+    ready_to_generate: ready,
+    blocked,
+  };
+}
