@@ -104,14 +104,15 @@ export async function POST(req: NextRequest) {
 
   const { brand, adSetId, newAdSet, jobs } = body;
   const { perWineAdSetDefaults } = body;
-  const adSettings = getAdSettings(brand);
-  const degreesOfFreedomSpec = buildDegreesOfFreedomSpec(
-    adSettings.creativeEnhancements.images,
-  );
 
   if (!getBrand(brand)) {
     return NextResponse.json({ error: "Unknown brand" }, { status: 400 });
   }
+
+  const adSettings = getAdSettings(brand);
+  const degreesOfFreedomSpec = buildDegreesOfFreedomSpec(
+    adSettings.creativeEnhancements.images,
+  );
 
   // In per-wine mode, adsets are created per job below — skip shared resolution
   let sharedAdSetId: string | null = null;
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
     jobs.map(async (job) => {
       try {
         // Resolve adset — create per-wine if in that mode
-        let resolvedAdSetId = sharedAdSetId as string;
+        let resolvedAdSetId: string;
         if (perWineAdSetDefaults) {
           const { id } = await createAdSet(brand, {
             campaignId: perWineAdSetDefaults.campaignId,
@@ -160,6 +161,11 @@ export async function POST(req: NextRequest) {
             placementMode: "automatic",
           });
           resolvedAdSetId = id;
+        } else {
+          if (!sharedAdSetId) {
+            throw new Error("Internal: sharedAdSetId is null in shared adset mode");
+          }
+          resolvedAdSetId = sharedAdSetId;
         }
 
         // Apply UTM to destination URL
