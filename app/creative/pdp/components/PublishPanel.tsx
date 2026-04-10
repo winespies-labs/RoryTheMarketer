@@ -90,6 +90,10 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
   const [generatingCopy, setGeneratingCopy] = useState(false);
   const [copyGenError, setCopyGenError] = useState<string | null>(null);
 
+  // Per-wine copy regeneration
+  const [regeneratingJobs, setRegeneratingJobs] = useState<Set<string>>(new Set());
+  const [regenerateErrors, setRegenerateErrors] = useState<Record<string, string>>({});
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -208,6 +212,12 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
   async function regenerateCopyForJob(jobId: string) {
     const job = jobs.find((j) => j.id === jobId);
     if (!job) return;
+    setRegeneratingJobs((prev) => new Set(prev).add(jobId));
+    setRegenerateErrors((prev) => {
+      const next = { ...prev };
+      delete next[jobId];
+      return next;
+    });
     try {
       const res = await fetch("/api/pdp/generate-copy", {
         method: "POST",
@@ -217,7 +227,7 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
           wines: [{ saleId: job.saleId, wineName: job.wineName }],
         }),
       });
-      if (!res.ok) return;
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as {
         copies: Array<{
           saleId: number;
@@ -240,8 +250,17 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
           },
         }));
       }
-    } catch {
-      // silent — user can retry
+    } catch (err) {
+      setRegenerateErrors((prev) => ({
+        ...prev,
+        [jobId]: err instanceof Error ? err.message : "Copy generation failed",
+      }));
+    } finally {
+      setRegeneratingJobs((prev) => {
+        const next = new Set(prev);
+        next.delete(jobId);
+        return next;
+      });
     }
   }
 
@@ -675,14 +694,22 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
                   <div className="flex items-center gap-2">
                     <div className="text-xs text-muted">{job.styleName}</div>
                     {state.status !== "done" && (
-                      <button
-                        type="button"
-                        onClick={() => regenerateCopyForJob(job.id)}
-                        title="Regenerate copy for this wine"
-                        className="text-[10px] text-accent hover:underline"
-                      >
-                        ↺ Copy
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => regenerateCopyForJob(job.id)}
+                          disabled={regeneratingJobs.has(job.id)}
+                          title="Regenerate copy for this wine"
+                          className="text-[10px] text-accent hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {regeneratingJobs.has(job.id) ? "…" : "↺ Copy"}
+                        </button>
+                        {regenerateErrors[job.id] && (
+                          <span className="text-[10px] text-danger" title={regenerateErrors[job.id]}>
+                            ✕
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                   <div>
