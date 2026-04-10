@@ -103,6 +103,7 @@ export async function createAdCreative(
     description: string;
     link: string;
     ctaType?: string;
+    degreesOfFreedomSpec?: Record<string, unknown>;
   },
 ): Promise<CreateCreativeResult> {
   const accountId = getAdAccountId(brandId);
@@ -127,12 +128,17 @@ export async function createAdCreative(
     },
   });
 
+  const body: Record<string, string | number | boolean | undefined> = {
+    name: input.name,
+    object_story_spec: objectStorySpec,
+  };
+  if (input.degreesOfFreedomSpec) {
+    body.degrees_of_freedom_spec = JSON.stringify(input.degreesOfFreedomSpec);
+  }
+
   const result = await graphPost<{ id: string }>(
     `${accountId}/adcreatives`,
-    {
-      name: input.name,
-      object_story_spec: objectStorySpec,
-    },
+    body,
   );
 
   if (!result.id) {
