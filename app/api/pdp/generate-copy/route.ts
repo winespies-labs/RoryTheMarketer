@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getContextBundle } from "@/lib/context-bundle";
+import { getBrand } from "@/lib/brands";
 
 export const maxDuration = 60;
 
@@ -26,6 +27,9 @@ const client = new Anthropic();
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as { brand?: string; wines: WineInput[] };
   const brand = body.brand ?? "winespies";
+  if (!getBrand(brand)) {
+    return NextResponse.json({ error: "Unknown brand" }, { status: 400 });
+  }
 
   if (!Array.isArray(body.wines) || body.wines.length === 0) {
     return NextResponse.json({ error: "wines array required" }, { status: 400 });
@@ -72,17 +76,25 @@ Wine: ${wine.wineName}${wine.score ? `\nScore: ${wine.score}` : ""}${wine.pullQu
           headline: (parsed.headline ?? wine.wineName).slice(0, 125),
           primaryText:
             parsed.primaryText ??
-            `${wine.wineName} — now just ${wine.salePrice}. Shop before it's gone.`,
+            (wine.salePrice
+              ? `${wine.wineName} — now just ${wine.salePrice}. Shop before it's gone.`
+              : `${wine.wineName} — a rare find. Shop before it's gone.`),
           description: (parsed.description ?? "Shop Wine Spies →").slice(0, 30),
         };
-      } catch {
+      } catch (err) {
+        console.error(
+          `[generate-copy] Failed to generate copy for wine ${wine.saleId} (${wine.wineName}):`,
+          err
+        );
         // Fallback copy if Claude fails or returns invalid JSON
         return {
           saleId: wine.saleId,
           headline: wine.wineName.slice(0, 125),
           primaryText:
             wine.pullQuote ??
-            `${wine.wineName} — now just ${wine.salePrice}. Limited time.`,
+            (wine.salePrice
+              ? `${wine.wineName} — now just ${wine.salePrice}. Limited time.`
+              : `${wine.wineName} — limited time offer.`),
           description: "Shop Wine Spies →",
         };
       }
