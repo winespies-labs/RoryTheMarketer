@@ -18,6 +18,14 @@ type StatusFilter = "all" | "draft" | "published";
 
 const BRAND = "winespies";
 
+const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
+
+const STATUS_TABS: { key: StatusFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "draft", label: "Draft" },
+  { key: "published", label: "Published" },
+];
+
 export default function LibraryPage() {
   const router = useRouter();
   const [writeups, setWriteups] = useState<Writeup[]>([]);
@@ -42,32 +50,30 @@ export default function LibraryPage() {
   });
 
   const handleSetStatus = async (id: string, newStatus: "draft" | "published") => {
-    await fetch(`/api/writeups/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ brand: BRAND, status: newStatus }),
-    });
-    await loadWriteups();
+    try {
+      await fetch(`/api/writeups/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brand: BRAND, status: newStatus }),
+      });
+      await loadWriteups();
+    } catch { /* silently handle */ }
   };
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/writeups/${id}?brand=${BRAND}`, { method: "DELETE" });
-    await loadWriteups();
+    try {
+      await fetch(`/api/writeups/${id}?brand=${BRAND}`, { method: "DELETE" });
+      await loadWriteups();
+    } catch { /* silently handle */ }
   };
 
-  const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
-
-  const STATUS_TABS: { key: StatusFilter; label: string }[] = [
-    { key: "all", label: "All" },
-    { key: "draft", label: "Draft" },
-    { key: "published", label: "Published" },
-  ];
-
   const emptyMessage =
-    statusFilter === "draft" ? "No drafts yet. Start a new writeup." :
-    statusFilter === "published" ? "No published writeups yet." :
-    search ? "No writeups match your search." :
-    "No writeups yet. Start writing.";
+    statusFilter === "draft"
+      ? search ? "No drafts match your search." : "No drafts yet. Start a new writeup."
+      : statusFilter === "published"
+      ? search ? "No published writeups match your search." : "No published writeups yet."
+      : search ? "No writeups match your search."
+      : "No writeups yet. Start writing.";
 
   return (
     <div>
