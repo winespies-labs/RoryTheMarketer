@@ -13,18 +13,6 @@ const sections = [
     href: "/briefs",
     badge: null,
   },
-  {
-    title: "Wines",
-    description: "Manage wine products and generate ad copy for your wine portfolio.",
-    href: "/wines",
-    badge: null,
-  },
-  {
-    title: "IG Research",
-    description: "Research Instagram content and trends for creative inspiration.",
-    href: "/instagram-research",
-    badge: null,
-  },
 ];
 
 export default function CreativeHub() {

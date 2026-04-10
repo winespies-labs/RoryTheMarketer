@@ -13,10 +13,13 @@ export async function GET(req: NextRequest) {
   }
 
   // Extract prompt guidance from raw markdown
-  const guidanceMatch = ad.rawMarkdown.match(
-    /^## Prompt Guidance for Variations\s*\n([\s\S]*?)(?=^## |\Z)/m,
-  );
-  const promptGuidance = guidanceMatch ? guidanceMatch[1].trim() : "";
+  const guidanceIdx = ad.rawMarkdown.search(/^## Prompt Guidance for Variations[ \t]*$/m);
+  let promptGuidance = "";
+  if (guidanceIdx !== -1) {
+    const after = ad.rawMarkdown.slice(guidanceIdx).replace(/^## Prompt Guidance for Variations[ \t]*\r?\n/, "");
+    const next = after.search(/^## /m);
+    promptGuidance = (next === -1 ? after : after.slice(0, next)).trim();
+  }
 
   return NextResponse.json({
     referenceAd: {

@@ -12,7 +12,7 @@ Study the ad layout carefully: background treatment (color, lighting, atmospheri
 Write a Gemini image-generation prompt that instructs Gemini to recreate this exact ad style with new wine data. The prompt must:
 
 1. Describe the background precisely (hex colors, lighting direction, atmospheric effects, mood)
-2. Describe bottle/product placement (position on canvas, size relative to canvas, angle, how background frames it)
+2. Describe bottle/product placement in terms of POSITION and LAYOUT ONLY — where it sits on the canvas, relative size, angle, how the background frames it. DO NOT describe the bottle's appearance (color, label design, capsule color, winery name on label, or any markings). The actual bottle will always be different, so only describe placement.
 3. List every text element with: position on canvas, font style (serif/sans-serif/monospace), approximate size in px, color in hex, max lines, alignment
 4. Use these exact token placeholders for dynamic content:
    - {{wineName}} — wine display name

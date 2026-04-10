@@ -42,13 +42,11 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "Creative",
-    matchPrefixes: ["/creative", "/briefs", "/wines", "/instagram-research"],
+    matchPrefixes: ["/creative", "/briefs"],
     items: [
       { label: "Overview", href: "/creative" },
       { label: "Briefs", href: "/briefs" },
-      { label: "Wines", href: "/wines" },
       { label: "PDP Builder", href: "/creative/pdp" },
-      { label: "IG Research", href: "/instagram-research" },
     ],
   },
   {

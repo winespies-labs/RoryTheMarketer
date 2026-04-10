@@ -60,15 +60,19 @@ function extractAdCreativeDetails(markdown: string): string {
 }
 
 function extractAdDescription(markdown: string): string {
-  const pattern = /^## Ad Description\s*\n([\s\S]*?)(?=^## |\Z)/m;
-  const match = markdown.match(pattern);
-  return match ? match[1].trim() : "";
+  const idx = markdown.search(/^## Ad Description[ \t]*$/m);
+  if (idx === -1) return "";
+  const after = markdown.slice(idx).replace(/^## Ad Description[ \t]*\r?\n/, "");
+  const next = after.search(/^## /m);
+  return (next === -1 ? after : after.slice(0, next)).trim();
 }
 
 function extractGenerationPrompt(markdown: string): string {
-  const pattern = /^## Generation Prompt\s*\n([\s\S]*?)(?=^## |\Z)/m;
-  const match = markdown.match(pattern);
-  return match ? match[1].trim() : "";
+  const idx = markdown.search(/^## Generation Prompt[ \t]*$/m);
+  if (idx === -1) return "";
+  const after = markdown.slice(idx).replace(/^## Generation Prompt[ \t]*\r?\n/, "");
+  const next = after.search(/^## /m);
+  return (next === -1 ? after : after.slice(0, next)).trim();
 }
 
 export function listReferenceAds(): ReferenceAdFrontmatter[] {
