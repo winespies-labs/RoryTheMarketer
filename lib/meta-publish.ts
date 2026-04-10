@@ -68,6 +68,8 @@ export type NewAdSetInput = {
   publisherPlatforms?: string[];
   facebookPositions?: string[];
   instagramPositions?: string[];
+  /** Defaults to "PAUSED" if omitted */
+  status?: "ACTIVE" | "PAUSED";
 };
 
 // --- Functions ---
@@ -260,7 +262,7 @@ export async function createAdSet(
     billing_event: "IMPRESSIONS",
     bid_strategy: input.bidStrategy,
     targeting: JSON.stringify(targetingSpec),
-    status: "PAUSED",
+    status: input.status ?? "PAUSED",
     start_time: input.startTime,
   };
 

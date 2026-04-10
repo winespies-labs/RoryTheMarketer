@@ -110,6 +110,8 @@ export async function POST(req: NextRequest) {
   }
 
   const adSettings = getAdSettings(brand);
+  // PDP publishes single-image ads — use the images enhancement bucket.
+  // Videos and carousel enhancement settings are saved for other publish flows.
   const degreesOfFreedomSpec = buildDegreesOfFreedomSpec(
     adSettings.creativeEnhancements.images,
   );
@@ -148,6 +150,7 @@ export async function POST(req: NextRequest) {
         // Resolve adset — create per-wine if in that mode
         let resolvedAdSetId: string;
         if (perWineAdSetDefaults) {
+          // Per-wine adsets are created ACTIVE so ads start delivering immediately
           const { id } = await createAdSet(brand, {
             campaignId: perWineAdSetDefaults.campaignId,
             name: job.wineName,
@@ -159,6 +162,7 @@ export async function POST(req: NextRequest) {
             bidAmountCents: perWineAdSetDefaults.bidAmountCents,
             targeting: { geoCountries: ["US"], ageMin: 21, ageMax: 65 },
             placementMode: "automatic",
+            status: "ACTIVE",
           });
           resolvedAdSetId = id;
         } else {

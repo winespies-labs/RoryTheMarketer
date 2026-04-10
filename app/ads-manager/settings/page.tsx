@@ -33,6 +33,7 @@ export default function SettingsPage() {
   });
   const [adSettingsSaving, setAdSettingsSaving] = useState(false);
   const [adSettingsSaved, setAdSettingsSaved] = useState(false);
+  const [adSettingsSaveError, setAdSettingsSaveError] = useState<string | null>(null);
 
   const [defaults, setDefaults] = useState<Defaults>({
     destinationUrl: "",
@@ -114,16 +115,21 @@ export default function SettingsPage() {
 
   const saveAdSettingsToServer = async () => {
     setAdSettingsSaving(true);
+    setAdSettingsSaveError(null);
     try {
-      await fetch("/api/ads/settings?brand=winespies", {
+      const res = await fetch("/api/ads/settings?brand=winespies", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(adSettings),
       });
+      if (!res.ok) {
+        setAdSettingsSaveError("Failed to save — please try again");
+        return;
+      }
       setAdSettingsSaved(true);
       setTimeout(() => setAdSettingsSaved(false), 2000);
     } catch {
-      // silent — user can retry
+      setAdSettingsSaveError("Failed to save — please try again");
     } finally {
       setAdSettingsSaving(false);
     }
@@ -342,6 +348,9 @@ export default function SettingsPage() {
           {adSettingsSaving ? "Saving…" : "Save Ad Settings"}
         </button>
         {adSettingsSaved && <span className="text-sm text-success">Saved</span>}
+        {adSettingsSaveError && (
+          <span className="text-sm text-danger">{adSettingsSaveError}</span>
+        )}
       </div>
     </div>
   );
