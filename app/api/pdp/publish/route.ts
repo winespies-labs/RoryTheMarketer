@@ -174,22 +174,39 @@ export async function POST(req: NextRequest) {
         // Apply UTM to destination URL
         const link = applyUtm(job.saleUrl, adSettings.utm);
 
-        const { hash } = await uploadAdImage(brand, job.imageBase64);
-        const { id: creativeId } = await createAdCreative(brand, {
-          name: `PDP — ${job.wineName}`,
-          imageHash: hash,
-          primaryText: job.primary_text,
-          headline: job.headline,
-          description: job.description,
-          link,
-          ctaType: "SHOP_NOW",
-        });
-        const { id: adId } = await createAd(brand, {
-          name: `PDP — ${job.wineName}`,
-          adsetId: resolvedAdSetId,
-          creativeId,
-          status: "ACTIVE",
-        });
+        let hash: string;
+        try {
+          ({ hash } = await uploadAdImage(brand, job.imageBase64));
+        } catch (err) {
+          throw new Error(`Image upload failed: ${err instanceof Error ? err.message : err}`);
+        }
+
+        let creativeId: string;
+        try {
+          ({ id: creativeId } = await createAdCreative(brand, {
+            name: `PDP — ${job.wineName}`,
+            imageHash: hash,
+            primaryText: job.primary_text,
+            headline: job.headline,
+            description: job.description,
+            link,
+            ctaType: "SHOP_NOW",
+          }));
+        } catch (err) {
+          throw new Error(`Creative creation failed: ${err instanceof Error ? err.message : err}`);
+        }
+
+        let adId: string;
+        try {
+          ({ id: adId } = await createAd(brand, {
+            name: `PDP — ${job.wineName}`,
+            adsetId: resolvedAdSetId,
+            creativeId,
+            status: "ACTIVE",
+          }));
+        } catch (err) {
+          throw new Error(`Ad creation failed: ${err instanceof Error ? err.message : err}`);
+        }
         return { jobId: job.jobId, success: true as const, adId };
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Publish failed";
