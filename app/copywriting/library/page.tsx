@@ -60,7 +60,8 @@ export default function LibraryPage() {
     } catch { /* silently handle */ }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, title: string) => {
+    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
     try {
       await fetch(`/api/writeups/${id}?brand=${BRAND}`, { method: "DELETE" });
       await loadWriteups();
@@ -182,7 +183,7 @@ export default function LibraryPage() {
                   {w.status === "published" ? "Unpublish" : "Publish"}
                 </button>
                 <button
-                  onClick={() => handleDelete(w.id)}
+                  onClick={() => handleDelete(w.id, w.title)}
                   className="px-3 py-1.5 text-xs text-muted hover:text-danger transition-colors"
                 >
                   Delete

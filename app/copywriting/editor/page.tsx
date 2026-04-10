@@ -84,7 +84,7 @@ function EditorPageInner() {
     return () => { if (fkTimerRef.current) clearTimeout(fkTimerRef.current); };
   }, [content]);
 
-  // Load writeup from URL param on mount
+  // Load writeup from URL param — re-run if writeupId becomes available after mount
   useEffect(() => {
     if (!writeupId) return;
     fetch(`/api/writeups/${writeupId}?brand=${BRAND}`)
@@ -99,8 +99,7 @@ function EditorPageInner() {
         lastSavedContentRef.current = w.content;
       })
       .catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // run once on mount — writeupId is stable from URL
+  }, [writeupId]);
 
   // Save draft
   const saveDraft = useCallback(async () => {
