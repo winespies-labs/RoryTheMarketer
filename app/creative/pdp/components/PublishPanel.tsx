@@ -72,6 +72,24 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
   const [audiences, setAudiences] = useState<MetaAudience[]>([]);
   const [newAdSetForm, setNewAdSetForm] = useState<NewAdSetFormState>(DEFAULT_NEW_AD_SET);
 
+  // Adset mode: shared (all wines → one adset) vs per-wine (one adset per wine)
+  const [adsetMode, setAdsetMode] = useState<"shared" | "per-wine">("shared");
+
+  // Per-wine adset defaults form
+  const [perWineDefaults, setPerWineDefaults] = useState({
+    campaignId: "",
+    budgetAmount: "",
+    bidStrategy: "LOWEST_COST_WITHOUT_CAP" as
+      | "LOWEST_COST_WITHOUT_CAP"
+      | "COST_CAP"
+      | "BID_CAP",
+    bidAmount: "",
+  });
+
+  // AI copy generation
+  const [generatingCopy, setGeneratingCopy] = useState(false);
+  const [copyGenError, setCopyGenError] = useState<string | null>(null);
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -139,6 +157,94 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
     }));
   }
 
+  async function generateCopy() {
+    setGeneratingCopy(true);
+    setCopyGenError(null);
+    try {
+      const wines = jobs.map((job) => ({
+        saleId: job.saleId,
+        wineName: job.wineName,
+      }));
+      const res = await fetch("/api/pdp/generate-copy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brand: "winespies", wines }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as {
+        copies: Array<{
+          saleId: number;
+          headline: string;
+          primaryText: string;
+          description: string;
+        }>;
+      };
+      setJobStates((prev) => {
+        const next = { ...prev };
+        for (const copy of data.copies) {
+          const jobId = jobs.find((j) => j.saleId === copy.saleId)?.id;
+          if (jobId && next[jobId]) {
+            next[jobId] = {
+              ...next[jobId],
+              copy: {
+                headline: copy.headline,
+                primary_text: copy.primaryText,
+                description: copy.description,
+              },
+            };
+          }
+        }
+        return next;
+      });
+    } catch (err) {
+      setCopyGenError(
+        err instanceof Error ? err.message : "Copy generation failed",
+      );
+    } finally {
+      setGeneratingCopy(false);
+    }
+  }
+
+  async function regenerateCopyForJob(jobId: string) {
+    const job = jobs.find((j) => j.id === jobId);
+    if (!job) return;
+    try {
+      const res = await fetch("/api/pdp/generate-copy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brand: "winespies",
+          wines: [{ saleId: job.saleId, wineName: job.wineName }],
+        }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        copies: Array<{
+          saleId: number;
+          headline: string;
+          primaryText: string;
+          description: string;
+        }>;
+      };
+      const copy = data.copies[0];
+      if (copy) {
+        setJobStates((prev) => ({
+          ...prev,
+          [jobId]: {
+            ...prev[jobId],
+            copy: {
+              headline: copy.headline,
+              primary_text: copy.primaryText,
+              description: copy.description,
+            },
+          },
+        }));
+      }
+    } catch {
+      // silent — user can retry
+    }
+  }
+
   async function handleRetry(jobId: string) {
     const job = jobs.find((j) => j.id === jobId);
     if (!job?.imageBase64) return;
@@ -149,24 +255,39 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
     }));
 
     try {
+      const body: Record<string, unknown> = {
+        brand: "winespies",
+        jobs: [
+          {
+            jobId: job.id,
+            imageBase64: job.imageBase64,
+            mimeType: job.mimeType,
+            wineName: job.wineName,
+            ...jobStates[jobId].copy,
+            saleUrl: `https://winespies.com/sales/${job.saleId}`,
+          },
+        ],
+      };
+
+      if (adsetMode === "per-wine") {
+        body.perWineAdSetDefaults = {
+          campaignId: perWineDefaults.campaignId,
+          budgetCents: Math.round(parseFloat(perWineDefaults.budgetAmount || "0") * 100),
+          bidStrategy: perWineDefaults.bidStrategy,
+          ...(perWineDefaults.bidAmount
+            ? { bidAmountCents: Math.round(parseFloat(perWineDefaults.bidAmount) * 100) }
+            : {}),
+        };
+        body.adSetId = null;
+      } else {
+        body.adSetId = destinationMode === "existing" ? selectedAdSetId : null;
+        body.newAdSet = destinationMode === "new" ? buildNewAdSetInput() : undefined;
+      }
+
       const res = await fetch("/api/pdp/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          brand: "winespies",
-          adSetId: destinationMode === "existing" ? selectedAdSetId : null,
-          newAdSet: destinationMode === "new" ? buildNewAdSetInput() : undefined,
-          jobs: [
-            {
-              jobId: job.id,
-              imageBase64: job.imageBase64,
-              mimeType: job.mimeType,
-              wineName: job.wineName,
-              ...jobStates[jobId].copy,
-              saleUrl: `https://winespies.com/sales/${job.saleId}`,
-            },
-          ],
-        }),
+        body: JSON.stringify(body),
       });
       const data = (await res.json()) as {
         results: Array<{
@@ -242,8 +363,13 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
   }
 
   async function handlePublish() {
-    if (!selectedAdSetId && destinationMode === "existing") return;
-    if (destinationMode === "new" && (!newAdSetForm.campaignId || !newAdSetForm.name || !newAdSetForm.budgetAmount)) {
+    if (adsetMode === "shared") {
+      if (!selectedAdSetId && destinationMode === "existing") return;
+      if (destinationMode === "new" && (!newAdSetForm.campaignId || !newAdSetForm.name || !newAdSetForm.budgetAmount)) {
+        return;
+      }
+    }
+    if (adsetMode === "per-wine" && (!perWineDefaults.campaignId || !perWineDefaults.budgetAmount)) {
       return;
     }
 
@@ -270,15 +396,30 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
     );
 
     try {
+      const body: Record<string, unknown> = {
+        brand: "winespies",
+        jobs: publishJobs,
+      };
+
+      if (adsetMode === "per-wine") {
+        body.perWineAdSetDefaults = {
+          campaignId: perWineDefaults.campaignId,
+          budgetCents: Math.round(parseFloat(perWineDefaults.budgetAmount || "0") * 100),
+          bidStrategy: perWineDefaults.bidStrategy,
+          ...(perWineDefaults.bidAmount
+            ? { bidAmountCents: Math.round(parseFloat(perWineDefaults.bidAmount) * 100) }
+            : {}),
+        };
+        body.adSetId = null;
+      } else {
+        body.adSetId = destinationMode === "existing" ? selectedAdSetId : null;
+        body.newAdSet = destinationMode === "new" ? buildNewAdSetInput() : undefined;
+      }
+
       const res = await fetch("/api/pdp/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          brand: "winespies",
-          adSetId: destinationMode === "existing" ? selectedAdSetId : null,
-          newAdSet: destinationMode === "new" ? buildNewAdSetInput() : undefined,
-          jobs: publishJobs,
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json() as {
@@ -334,68 +475,183 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
             Review copy for each ad, choose an ad set, and publish.
           </p>
         </div>
-        <button
-          onClick={onBack}
-          className="px-3 py-2 text-sm text-muted hover:text-foreground transition-colors shrink-0"
-        >
-          ← Back
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={generateCopy}
+            disabled={generatingCopy || publishing}
+            className="px-3 py-2 bg-surface border border-border text-foreground text-sm font-medium rounded-lg hover:bg-background transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {generatingCopy ? "Generating…" : "✦ Generate Copy"}
+          </button>
+          <button
+            onClick={onBack}
+            className="px-3 py-2 text-sm text-muted hover:text-foreground transition-colors"
+          >
+            ← Back
+          </button>
+        </div>
       </div>
+
+      {copyGenError && (
+        <div className="px-3 py-2 bg-danger/10 text-danger text-xs rounded-lg">
+          {copyGenError}
+        </div>
+      )}
 
       <div className="border border-border rounded-xl p-4 flex flex-col gap-4 bg-surface">
         <div className="flex items-center justify-between">
-          <div className="text-sm font-medium text-foreground">
-            Destination Ad Set
-          </div>
+          <div className="text-sm font-medium text-foreground">Ad Set</div>
           <div className="flex gap-1">
-            {(["existing", "new"] as const).map((m) => (
+            {(["shared", "per-wine"] as const).map((m) => (
               <button
                 key={m}
                 type="button"
-                onClick={() => setDestinationMode(m)}
+                onClick={() => setAdsetMode(m)}
                 className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
-                  destinationMode === m
+                  adsetMode === m
                     ? "border-accent bg-accent/10 text-accent font-medium"
                     : "border-border text-muted hover:text-foreground"
                 }`}
               >
-                {m === "existing" ? "Use existing" : "Create new"}
+                {m === "shared" ? "All in one adset" : "One adset per wine"}
               </button>
             ))}
           </div>
         </div>
 
-        {destinationMode === "existing" && (
+        {adsetMode === "shared" && (
           <>
-            {adSetsLoading ? (
-              <div className="text-sm text-muted">Loading ad sets…</div>
-            ) : adSetsError ? (
-              <div className="text-sm text-danger">{adSetsError}</div>
-            ) : (
-              <select
-                value={selectedAdSetId}
-                onChange={(e) => setSelectedAdSetId(e.target.value)}
-                className="px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-accent"
-              >
-                {adSets.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.effective_status})
-                  </option>
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-foreground">
+                Destination Ad Set
+              </div>
+              <div className="flex gap-1">
+                {(["existing", "new"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setDestinationMode(m)}
+                    className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
+                      destinationMode === m
+                        ? "border-accent bg-accent/10 text-accent font-medium"
+                        : "border-border text-muted hover:text-foreground"
+                    }`}
+                  >
+                    {m === "existing" ? "Use existing" : "Create new"}
+                  </button>
                 ))}
-              </select>
+              </div>
+            </div>
+
+            {destinationMode === "existing" && (
+              <>
+                {adSetsLoading ? (
+                  <div className="text-sm text-muted">Loading ad sets…</div>
+                ) : adSetsError ? (
+                  <div className="text-sm text-danger">{adSetsError}</div>
+                ) : (
+                  <select
+                    value={selectedAdSetId}
+                    onChange={(e) => setSelectedAdSetId(e.target.value)}
+                    className="px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-accent"
+                  >
+                    {adSets.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.effective_status})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </>
+            )}
+
+            {destinationMode === "new" && (
+              <NewAdSetForm
+                campaigns={campaigns}
+                audiences={audiences}
+                value={newAdSetForm}
+                onChange={(updates) =>
+                  setNewAdSetForm((prev) => ({ ...prev, ...updates }))
+                }
+              />
             )}
           </>
         )}
 
-        {destinationMode === "new" && (
-          <NewAdSetForm
-            campaigns={campaigns}
-            audiences={audiences}
-            value={newAdSetForm}
-            onChange={(updates) =>
-              setNewAdSetForm((prev) => ({ ...prev, ...updates }))
-            }
-          />
+        {adsetMode === "per-wine" && (
+          <div className="flex flex-col gap-3">
+            <p className="text-xs text-muted">
+              One adset will be created per wine, named after the wine. All under the selected campaign.
+            </p>
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1">Campaign</label>
+              <select
+                value={perWineDefaults.campaignId}
+                onChange={(e) =>
+                  setPerWineDefaults((prev) => ({ ...prev, campaignId: e.target.value }))
+                }
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-accent"
+              >
+                <option value="">Select campaign…</option>
+                {campaigns.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-muted mb-1">Daily Budget ($)</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  value={perWineDefaults.budgetAmount}
+                  onChange={(e) =>
+                    setPerWineDefaults((prev) => ({ ...prev, budgetAmount: e.target.value }))
+                  }
+                  placeholder="50"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted mb-1">Bid Strategy</label>
+                <select
+                  value={perWineDefaults.bidStrategy}
+                  onChange={(e) =>
+                    setPerWineDefaults((prev) => ({
+                      ...prev,
+                      bidStrategy: e.target.value as typeof perWineDefaults.bidStrategy,
+                    }))
+                  }
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-accent"
+                >
+                  <option value="LOWEST_COST_WITHOUT_CAP">Lowest cost</option>
+                  <option value="COST_CAP">Cost cap</option>
+                  <option value="BID_CAP">Bid cap</option>
+                </select>
+              </div>
+            </div>
+            {perWineDefaults.bidStrategy !== "LOWEST_COST_WITHOUT_CAP" && (
+              <div>
+                <label className="block text-xs font-medium text-muted mb-1">
+                  {perWineDefaults.bidStrategy === "COST_CAP" ? "Cost cap ($)" : "Bid cap ($)"}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={perWineDefaults.bidAmount}
+                  onChange={(e) =>
+                    setPerWineDefaults((prev) => ({ ...prev, bidAmount: e.target.value }))
+                  }
+                  placeholder="25.00"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -416,7 +672,19 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
                 )}
                 <div className="flex-1 flex flex-col gap-2 min-w-0">
                   <div className="text-sm font-semibold text-foreground">{job.wineName}</div>
-                  <div className="text-xs text-muted">{job.styleName}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-muted">{job.styleName}</div>
+                    {state.status !== "done" && (
+                      <button
+                        type="button"
+                        onClick={() => regenerateCopyForJob(job.id)}
+                        title="Regenerate copy for this wine"
+                        className="text-[10px] text-accent hover:underline"
+                      >
+                        ↺ Copy
+                      </button>
+                    )}
+                  </div>
                   <div>
                     <label className="text-[10px] font-semibold text-muted uppercase tracking-wide block mb-1">Headline</label>
                     <input
@@ -489,23 +757,24 @@ export default function PublishPanel({ jobs, onBack }: PublishPanelProps) {
           <button
             onClick={handlePublish}
             disabled={
-            publishing ||
-            anyPublishing ||
-            preflight?.ok === false ||
-            (destinationMode === "existing" && !selectedAdSetId) ||
-            (destinationMode === "new" &&
-              (!newAdSetForm.campaignId ||
-                !newAdSetForm.name ||
-                !newAdSetForm.budgetAmount))
-          }
+              publishing ||
+              anyPublishing ||
+              preflight?.ok === false ||
+              (adsetMode === "shared" && destinationMode === "existing" && !selectedAdSetId) ||
+              (adsetMode === "shared" && destinationMode === "new" &&
+                (!newAdSetForm.campaignId ||
+                  !newAdSetForm.name ||
+                  !newAdSetForm.budgetAmount)) ||
+              (adsetMode === "per-wine" && (!perWineDefaults.campaignId || !perWineDefaults.budgetAmount))
+            }
             className="px-6 py-2.5 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {publishing
-              ? destinationMode === "new"
-                ? "Creating ad set…"
+              ? adsetMode === "per-wine"
+                ? "Creating adsets & publishing…"
                 : "Publishing…"
-              : destinationMode === "new"
-              ? `Create Ad Set & Publish ${jobs.length} Ad${jobs.length !== 1 ? "s" : ""}`
+              : adsetMode === "per-wine"
+              ? `Create ${jobs.length} Adset${jobs.length !== 1 ? "s" : ""} & Publish`
               : `Publish ${jobs.length} Ad${jobs.length !== 1 ? "s" : ""} to Meta`}
           </button>
         </div>
