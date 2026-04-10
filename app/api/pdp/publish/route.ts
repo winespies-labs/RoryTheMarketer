@@ -11,7 +11,7 @@ import {
   createAdSet,
   type NewAdSetInput,
 } from "@/lib/meta-publish";
-import { getAdSettings, applyUtm, buildDegreesOfFreedomSpec } from "@/lib/ad-settings";
+import { getAdSettings, applyUtm } from "@/lib/ad-settings";
 
 export const maxDuration = 120;
 
@@ -110,11 +110,10 @@ export async function POST(req: NextRequest) {
   }
 
   const adSettings = getAdSettings(brand);
-  // PDP publishes single-image ads — use the images enhancement bucket.
-  // Videos and carousel enhancement settings are saved for other publish flows.
-  const degreesOfFreedomSpec = buildDegreesOfFreedomSpec(
-    adSettings.creativeEnhancements.images,
-  );
+  // NOTE: degrees_of_freedom_spec (Advantage+ Creative) is intentionally omitted here.
+  // It requires the ad account to have Advantage+ Creative enabled (Meta opt-in).
+  // Sending it on an ineligible account causes error 200/1815066 (OAuthException).
+  // Re-enable once the account is confirmed eligible.
 
   // In per-wine mode, adsets are created per job below — skip shared resolution
   let sharedAdSetId: string | null = null;
@@ -184,7 +183,6 @@ export async function POST(req: NextRequest) {
           description: job.description,
           link,
           ctaType: "SHOP_NOW",
-          degreesOfFreedomSpec,
         });
         const { id: adId } = await createAd(brand, {
           name: `PDP — ${job.wineName}`,
