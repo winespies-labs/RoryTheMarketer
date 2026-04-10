@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateWriteup, deleteWriteup } from "@/lib/writeups-storage";
+import { readWriteups, updateWriteup, deleteWriteup } from "@/lib/writeups-storage";
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const brand = req.nextUrl.searchParams.get("brand") || "winespies";
+  const data = await readWriteups(brand);
+  const writeup = data.writeups.find((w) => w.id === id) ?? null;
+  if (!writeup) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(writeup);
+}
 
 export async function PUT(
   req: NextRequest,

@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { calculateFK, getFKLevel, type FKResult } from "@/lib/flesch-kincaid";
 import EditorPanel from "./components/EditorPanel";
 import ResearchPanel from "./components/ResearchPanel";
 import ReviewPanel, { type CritiqueData } from "./components/ReviewPanel";
 import PublishPanel from "./components/PublishPanel";
-import DraftsDrawer from "./components/DraftsDrawer";
 import ScoreRing from "./components/ScoreRing";
 import type { CardStatus } from "./components/CritiqueCard";
 
@@ -35,7 +35,11 @@ const AUTO_SAVE_INTERVAL = 30000;
 const TABS = ["Research", "Review", "Publish"] as const;
 type Tab = (typeof TABS)[number];
 
-export default function EditorPage() {
+function EditorPageInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const writeupId = searchParams.get("id");
+
   // Editor state
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -57,10 +61,6 @@ export default function EditorPage() {
   const [critiqueData, setCritiqueData] = useState<CritiqueData | null>(null);
   const [critiqueLoading, setCritiqueLoading] = useState(false);
   const [itemStatuses, setItemStatuses] = useState<Record<string, CardStatus>>({});
-
-  // Drafts
-  const [writeups, setWriteups] = useState<Writeup[]>([]);
-  const [showDrafts, setShowDrafts] = useState(false);
 
   // Publishing
   const [publishing, setPublishing] = useState(false);
@@ -84,15 +84,23 @@ export default function EditorPage() {
     return () => { if (fkTimerRef.current) clearTimeout(fkTimerRef.current); };
   }, [content]);
 
-  // Load writeups
-  const loadWriteups = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/writeups?brand=${BRAND}`);
-      if (res.ok) setWriteups(await res.json());
-    } catch { /* silently handle */ }
-  }, []);
-
-  useEffect(() => { loadWriteups(); }, [loadWriteups]);
+  // Load writeup from URL param on mount
+  useEffect(() => {
+    if (!writeupId) return;
+    fetch(`/api/writeups/${writeupId}?brand=${BRAND}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((w: Writeup | null) => {
+        if (!w) return;
+        setTitle(w.title);
+        setContent(w.content);
+        setActiveWriteupId(w.id);
+        setWriteupStatus(w.status);
+        setLastSavedAt(w.updatedAt);
+        lastSavedContentRef.current = w.content;
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on mount — writeupId is stable from URL
 
   // Save draft
   const saveDraft = useCallback(async () => {
@@ -116,7 +124,6 @@ export default function EditorPage() {
           if (!title.trim()) setTitle(saveTitle);
           setLastSavedAt(updated.updatedAt);
           lastSavedContentRef.current = content;
-          await loadWriteups();
           setSaveStatus("saved");
         } else {
           setSaveStatus("error");
@@ -137,7 +144,6 @@ export default function EditorPage() {
           if (!title.trim()) setTitle(saveTitle);
           setLastSavedAt(writeup.updatedAt);
           lastSavedContentRef.current = content;
-          await loadWriteups();
           setSaveStatus("saved");
         } else {
           setSaveStatus("error");
@@ -148,7 +154,7 @@ export default function EditorPage() {
     }
 
     setTimeout(() => setSaveStatus("idle"), 2000);
-  }, [content, title, activeWriteupId, writeupStatus, overallScore, loadWriteups]);
+  }, [content, title, activeWriteupId, writeupStatus, overallScore]);
 
   // Auto-save every 30s
   useEffect(() => {
@@ -159,47 +165,6 @@ export default function EditorPage() {
     }, AUTO_SAVE_INTERVAL);
     return () => { if (autoSaveRef.current) clearInterval(autoSaveRef.current); };
   }, [saveDraft, content]);
-
-  // Load draft
-  const loadDraft = (w: Writeup) => {
-    setTitle(w.title);
-    setContent(w.content);
-    setActiveWriteupId(w.id);
-    setWriteupStatus(w.status);
-    setLastSavedAt(w.updatedAt);
-    lastSavedContentRef.current = w.content;
-    setCritiqueData(null);
-    setItemStatuses({});
-    setShowDrafts(false);
-    setActiveTab("Research");
-  };
-
-  // Delete draft
-  const deleteDraft = async (id: string) => {
-    await fetch(`/api/writeups/${id}?brand=${BRAND}`, { method: "DELETE" });
-    if (activeWriteupId === id) {
-      setTitle("");
-      setContent("");
-      setActiveWriteupId(null);
-      setWriteupStatus("draft");
-      setLastSavedAt(null);
-    }
-    await loadWriteups();
-  };
-
-  // New draft
-  const newDraft = () => {
-    setTitle("");
-    setContent("");
-    setActiveWriteupId(null);
-    setWriteupStatus("draft");
-    setLastSavedAt(null);
-    lastSavedContentRef.current = "";
-    setCritiqueData(null);
-    setItemStatuses({});
-    setWineDetails({ wineName: "", varietal: "", region: "", points: "", priceDiscount: "", tastingNotes: "", scarcityAngle: "" });
-    setActiveTab("Research");
-  };
 
   // Run structured review
   const runReview = async () => {
@@ -256,7 +221,6 @@ export default function EditorPage() {
     if (idx === -1) return;
     textarea.focus();
     textarea.setSelectionRange(idx, idx + line.length);
-    // Scroll to make selection visible
     const linesBefore = content.slice(0, idx).split("\n").length;
     const lineHeight = 20;
     textarea.scrollTop = Math.max(0, (linesBefore - 3) * lineHeight);
@@ -290,7 +254,6 @@ export default function EditorPage() {
         setLastSavedAt(writeup.updatedAt);
       }
     }
-    await loadWriteups();
     setPublishing(false);
   };
 
@@ -303,7 +266,6 @@ export default function EditorPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ brand: BRAND, status: "draft", title, content }),
     });
-    await loadWriteups();
     setPublishing(false);
   };
 
@@ -327,7 +289,21 @@ export default function EditorPage() {
 
       {/* Header bar */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-surface shrink-0">
-        <h1 className="text-lg font-semibold tracking-tight">Editor</h1>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push("/copywriting/library")}
+            className="flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Library
+          </button>
+          <span className="text-border">|</span>
+          <h1 className="text-sm font-medium text-foreground truncate max-w-xs">
+            {title || "New writeup"}
+          </h1>
+        </div>
         <div className="flex items-center gap-4">
           {fk.words > 0 && (
             <span className={`text-xs font-medium ${fkBadgeColor}`}>
@@ -415,17 +391,14 @@ export default function EditorPage() {
           </div>
         </div>
       </div>
-
-      {/* Drafts drawer */}
-      <DraftsDrawer
-        writeups={writeups}
-        activeWriteupId={activeWriteupId}
-        open={showDrafts}
-        onToggle={() => setShowDrafts(!showDrafts)}
-        onLoad={loadDraft}
-        onDelete={deleteDraft}
-        onNew={newDraft}
-      />
     </div>
+  );
+}
+
+export default function EditorPage() {
+  return (
+    <Suspense fallback={null}>
+      <EditorPageInner />
+    </Suspense>
   );
 }
