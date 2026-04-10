@@ -14,6 +14,8 @@ interface Writeup {
   updatedAt: string;
 }
 
+type StatusFilter = "all" | "draft" | "published";
+
 const BRAND = "winespies";
 
 export default function LibraryPage() {
@@ -21,10 +23,11 @@ export default function LibraryPage() {
   const [writeups, setWriteups] = useState<Writeup[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const loadWriteups = useCallback(async () => {
     try {
-      const res = await fetch(`/api/writeups?brand=${BRAND}&status=published`);
+      const res = await fetch(`/api/writeups?brand=${BRAND}`);
       if (res.ok) setWriteups(await res.json());
     } catch { /* silently handle */ }
     setLoading(false);
@@ -32,39 +35,79 @@ export default function LibraryPage() {
 
   useEffect(() => { loadWriteups(); }, [loadWriteups]);
 
-  const filtered = writeups.filter(
-    (w) => w.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = writeups.filter((w) => {
+    const matchesSearch = w.title.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "all" || w.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
-  const handleUnpublish = async (id: string) => {
+  const handleSetStatus = async (id: string, newStatus: "draft" | "published") => {
     await fetch(`/api/writeups/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ brand: BRAND, status: "draft" }),
+      body: JSON.stringify({ brand: BRAND, status: newStatus }),
     });
     await loadWriteups();
   };
 
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/writeups/${id}?brand=${BRAND}`, { method: "DELETE" });
+    await loadWriteups();
+  };
+
   const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
+
+  const STATUS_TABS: { key: StatusFilter; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "draft", label: "Draft" },
+    { key: "published", label: "Published" },
+  ];
+
+  const emptyMessage =
+    statusFilter === "draft" ? "No drafts yet. Start a new writeup." :
+    statusFilter === "published" ? "No published writeups yet." :
+    search ? "No writeups match your search." :
+    "No writeups yet. Start writing.";
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Library</h1>
-          <p className="text-sm text-muted mt-1">Published write-ups ready for use.</p>
+          <p className="text-sm text-muted mt-1">All your copy in one place.</p>
         </div>
+        <button
+          onClick={() => router.push("/copywriting/editor")}
+          className="px-4 py-2 text-sm bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+        >
+          + New writeup
+        </button>
       </div>
 
-      {/* Search */}
-      <div className="mb-6">
+      {/* Search + status tabs */}
+      <div className="flex items-center gap-4 mb-6">
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by title..."
-          className="w-full max-w-md px-4 py-2.5 text-sm border border-border rounded-lg bg-surface focus:outline-none focus:border-accent transition-colors"
+          className="w-full max-w-xs px-4 py-2 text-sm border border-border rounded-lg bg-surface focus:outline-none focus:border-accent transition-colors"
         />
+        <div className="flex items-center gap-1 border border-border rounded-lg p-0.5 bg-surface">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setStatusFilter(tab.key)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                statusFilter === tab.key
+                  ? "bg-accent text-white"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -76,9 +119,7 @@ export default function LibraryPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-muted">
-            {search ? "No published writeups match your search." : "No published writeups yet. Write and publish from the Editor."}
-          </p>
+          <p className="text-muted">{emptyMessage}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -98,7 +139,16 @@ export default function LibraryPage() {
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold truncate">{w.title}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold truncate">{w.title}</h3>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${
+                    w.status === "published"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-500"
+                  }`}>
+                    {w.status}
+                  </span>
+                </div>
                 <div className="flex items-center gap-3 text-xs text-muted mt-1">
                   <span>{new Date(w.updatedAt).toLocaleDateString()}</span>
                   <span>{wordCount(w.content)} words</span>
@@ -114,16 +164,22 @@ export default function LibraryPage() {
                   Copy
                 </button>
                 <button
-                  onClick={() => router.push(`/copywriting/editor`)}
+                  onClick={() => router.push(`/copywriting/editor?id=${w.id}`)}
                   className="px-3 py-1.5 text-xs bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
                 >
                   Open
                 </button>
                 <button
-                  onClick={() => handleUnpublish(w.id)}
+                  onClick={() => handleSetStatus(w.id, w.status === "published" ? "draft" : "published")}
+                  className="px-3 py-1.5 text-xs text-muted hover:text-foreground border border-border rounded-lg hover:border-accent transition-colors"
+                >
+                  {w.status === "published" ? "Unpublish" : "Publish"}
+                </button>
+                <button
+                  onClick={() => handleDelete(w.id)}
                   className="px-3 py-1.5 text-xs text-muted hover:text-danger transition-colors"
                 >
-                  Unpublish
+                  Delete
                 </button>
               </div>
             </div>
