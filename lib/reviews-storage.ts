@@ -6,6 +6,10 @@ import {
   loadReviewsFromDb,
   mergeReviewsDb,
   updateReviewMetadataDb,
+  updateReviewScoringDb,
+  loadUnscoredReviewsDb,
+  getUnscoredCountDb,
+  loadTopTestimonialsDb,
   type ListReviewsFilters,
 } from "@/lib/reviews-db";
 import { readReviewsFile, writeReviewsFile } from "@/lib/reviews-file";
@@ -13,6 +17,7 @@ import {
   type Review,
   type ReviewsData,
   type ReviewSource,
+  type UspCategory,
 } from "@/lib/reviews";
 import type { SlackMessage } from "@/lib/slack";
 
@@ -263,4 +268,82 @@ export function parseSlackMessage(msg: SlackMessage): Omit<Review, "id"> {
     createdAt: new Date().toISOString(),
     slackMessageTs: msg.ts,
   };
+}
+
+function updateReviewScoringFile(
+  brandId: string,
+  reviewId: string,
+  scoring: {
+    uspCategory: UspCategory | null;
+    adScore: number;
+    extractedQuote: string;
+  }
+): void {
+  const data = readReviewsFile(brandId);
+  const idx = data.reviews.findIndex((r) => r.id === reviewId);
+  if (idx === -1) return;
+  data.reviews[idx] = {
+    ...data.reviews[idx],
+    uspCategory: scoring.uspCategory,
+    adScore: scoring.adScore,
+    extractedQuote: scoring.extractedQuote,
+    scoredAt: new Date().toISOString(),
+  };
+  writeReviewsFile(brandId, data);
+}
+
+export async function updateReviewScoring(
+  brandId: string,
+  reviewId: string,
+  scoring: {
+    uspCategory: UspCategory | null;
+    adScore: number;
+    extractedQuote: string;
+  }
+): Promise<void> {
+  if (useDatabase()) {
+    await importJsonToDbIfEmpty(brandId);
+    await updateReviewScoringDb(brandId, reviewId, scoring);
+    return;
+  }
+  updateReviewScoringFile(brandId, reviewId, scoring);
+}
+
+export async function loadUnscoredReviews(brandId: string): Promise<Review[]> {
+  if (useDatabase()) {
+    await importJsonToDbIfEmpty(brandId);
+    return loadUnscoredReviewsDb(brandId);
+  }
+  const data = readReviewsFile(brandId);
+  return data.reviews.filter((r) => !r.scoredAt);
+}
+
+export async function getUnscoredCount(brandId: string): Promise<number> {
+  if (useDatabase()) {
+    await importJsonToDbIfEmpty(brandId);
+    return getUnscoredCountDb(brandId);
+  }
+  const data = readReviewsFile(brandId);
+  return data.reviews.filter((r) => !r.scoredAt).length;
+}
+
+/** Returns up to 5 top-scored reviews per USP category for context injection. */
+export async function loadTopTestimonialsForContext(
+  brandId: string
+): Promise<Review[]> {
+  if (useDatabase()) {
+    await importJsonToDbIfEmpty(brandId);
+    return loadTopTestimonialsDb(brandId);
+  }
+  const data = readReviewsFile(brandId);
+  const categories: UspCategory[] = ["best-price", "locker", "satisfaction-guaranteed"];
+  const results: Review[] = [];
+  for (const cat of categories) {
+    const scored = data.reviews
+      .filter((r) => r.uspCategory === cat && r.adScore != null && r.extractedQuote)
+      .sort((a, b) => (b.adScore ?? 0) - (a.adScore ?? 0))
+      .slice(0, 5);
+    results.push(...scored);
+  }
+  return results;
 }
