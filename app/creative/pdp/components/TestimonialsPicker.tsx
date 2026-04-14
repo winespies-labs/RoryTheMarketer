@@ -22,9 +22,11 @@ export default function TestimonialsPicker({
   const [testimonials, setTestimonials] = useState<Review[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchTestimonials = useCallback(async () => {
     if (fetched) return;
+    setError(null);
     setLoading(true);
     try {
       const res = await fetch(
@@ -37,6 +39,7 @@ export default function TestimonialsPicker({
       );
       setTestimonials(scored);
     } catch {
+      setError("Failed to load testimonials.");
       setTestimonials([]);
     } finally {
       setLoading(false);
@@ -96,6 +99,10 @@ export default function TestimonialsPicker({
             <p className="text-xs text-muted py-4 text-center">
               No scored testimonials found. Score some reviews first.
             </p>
+          )}
+
+          {!loading && error && (
+            <p className="text-xs text-danger py-4 text-center">{error}</p>
           )}
 
           {!loading &&
