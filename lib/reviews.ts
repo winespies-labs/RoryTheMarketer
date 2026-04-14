@@ -1,6 +1,8 @@
 /** Source of the review (Slack messages may be tagged or we infer from text). */
 export type ReviewSource = "trustpilot" | "app_store" | "unknown";
 
+export type UspCategory = "best-price" | "locker" | "satisfaction-guaranteed";
+
 export interface Review {
   id: string;
   source: ReviewSource;
@@ -16,6 +18,14 @@ export interface Review {
   starred?: boolean;
   /** User-assigned topics for filtering (e.g. Locker, Customer service). */
   topics?: string[];
+  /** Which USP this review best supports. Null = unscored. */
+  uspCategory?: UspCategory | null;
+  /** Ad-readiness score 0–100. Null = unscored. */
+  adScore?: number | null;
+  /** AI-extracted best 1–2 sentence quote for use in ads. */
+  extractedQuote?: string | null;
+  /** When scoring last ran. Null = unscored. */
+  scoredAt?: string | null;
 }
 
 /** Suggested labels when tagging reviews (add more anytime in code). */

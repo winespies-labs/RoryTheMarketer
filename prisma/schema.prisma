@@ -168,8 +168,12 @@ model CustomerReview {
   rating           Int?
   createdAt        DateTime @map("created_at")
   slackMessageTs   String?  @map("slack_message_ts")
-  starred          Boolean  @default(false)
-  topics           String[] @default([])
+  starred          Boolean   @default(false)
+  topics           String[]  @default([])
+  uspCategory      String?   @map("usp_category")
+  adScore          Int?      @map("ad_score")
+  extractedQuote   String?   @map("extracted_quote") @db.Text
+  scoredAt         DateTime? @map("scored_at")
 
   @@unique([brandId, slackMessageTs])
   @@index([brandId])
