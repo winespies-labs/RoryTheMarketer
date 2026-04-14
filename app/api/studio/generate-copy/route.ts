@@ -87,6 +87,13 @@ Generate the copy.`;
       ctaText: string;
     };
 
+    if (!result.headline || !result.primaryText || !result.ctaText) {
+      return NextResponse.json(
+        { error: "Incomplete response from Claude — missing headline, primaryText, or ctaText" },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json(
