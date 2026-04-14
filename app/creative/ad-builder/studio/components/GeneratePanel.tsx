@@ -97,7 +97,7 @@ export default function GeneratePanel({
             {images.map((img, i) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                key={i}
+                key={img.base64.slice(0, 16)}
                 src={`data:${img.mimeType};base64,${img.base64}`}
                 alt={`Generated ad ${i + 1}`}
                 className="w-full rounded-xl border border-border"
