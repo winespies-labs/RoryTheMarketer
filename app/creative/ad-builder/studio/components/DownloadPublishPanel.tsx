@@ -142,7 +142,7 @@ export default function DownloadPublishPanel({
       {/* Images with download buttons */}
       <div className="flex flex-col gap-3">
         {images.map((img, i) => (
-          <div key={img.base64.slice(0, 16)} className="flex items-start gap-3 p-3 rounded-xl border border-border bg-surface">
+          <div key={i} className="flex items-start gap-3 p-3 rounded-xl border border-border bg-surface">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`data:${img.mimeType};base64,${img.base64}`}
@@ -185,7 +185,8 @@ export default function DownloadPublishPanel({
                 id="campaign-select"
                 value={selectedCampaign}
                 onChange={(e) => { setSelectedCampaign(e.target.value); setSelectedAdSet(""); }}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-surface focus:outline-none focus:border-accent"
+                disabled={loadingCampaigns}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-surface focus:outline-none focus:border-accent disabled:opacity-50"
               >
                 <option value="">Select campaign...</option>
                 {campaigns.map((c) => (
@@ -205,7 +206,8 @@ export default function DownloadPublishPanel({
                   id="adset-select"
                   value={selectedAdSet}
                   onChange={(e) => setSelectedAdSet(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-surface focus:outline-none focus:border-accent"
+                  disabled={loadingAdSets}
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-surface focus:outline-none focus:border-accent disabled:opacity-50"
                 >
                   <option value="">Select ad set...</option>
                   {adSets.map((a) => (
