@@ -49,11 +49,16 @@ function TestimonialCard({
   const uspBadge =
     review.uspCategory ? USP_BADGE[review.uspCategory] : null;
 
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 1500);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
   const handleCopy = async () => {
     const text = review.extractedQuote ?? review.content.slice(0, 200);
     await navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
   };
 
   return (
@@ -135,9 +140,11 @@ export default function TestimonialsPanel() {
   const [unscoredCount, setUnscoredCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [scoring, setScoring] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchTestimonials = useCallback(async () => {
     setLoading(true);
+    setError(null);
     const params = new URLSearchParams({ brand: "winespies", sort });
     if (tab === "unscored") params.set("unscored", "1");
     else if (tab !== "all") params.set("uspCategory", tab);
@@ -145,7 +152,11 @@ export default function TestimonialsPanel() {
     params.set("limit", "200");
 
     const res = await fetch(`/api/testimonials?${params}`);
-    if (!res.ok) { setLoading(false); return; }
+    if (!res.ok) {
+      setError("Failed to load testimonials.");
+      setLoading(false);
+      return;
+    }
     const data = await res.json() as {
       testimonials: Review[];
       unscoredCount: number;
@@ -168,15 +179,27 @@ export default function TestimonialsPanel() {
     setTestimonials((prev) =>
       prev.map((t) => (t.id === id ? { ...t, starred } : t))
     );
-    await fetch(`/api/reviews/${id}?brand=winespies`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ starred }),
-    });
+    try {
+      const res = await fetch(`/api/reviews/${id}?brand=winespies`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ starred }),
+      });
+      if (!res.ok) throw new Error("Failed to update star");
+    } catch {
+      // Rollback optimistic update
+      setTestimonials((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, starred: !starred } : t))
+      );
+    }
   };
 
   return (
     <div className="flex flex-col gap-4">
+      {error && (
+        <p className="text-sm text-danger text-center py-4">{error}</p>
+      )}
+
       {/* Top bar */}
       <div className="flex items-center gap-3 flex-wrap">
         <button
