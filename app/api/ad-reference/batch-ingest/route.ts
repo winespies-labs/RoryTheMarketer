@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
 
   const dir = getStaticAdsDir();
   if (!fs.existsSync(dir)) {
-    return NextResponse.json({ created: [], skipped: [], errors: [] });
+    return NextResponse.json({ created: [], errors: [] });
   }
 
   const bundle = getContextBundle(brandId);
@@ -95,7 +95,6 @@ export async function POST(req: NextRequest) {
 
   const imageFiles = getUnregisteredImages();
   const created: string[] = [];
-  const skipped: string[] = [];
   const errors: string[] = [];
 
   for (const filename of imageFiles) {
@@ -154,7 +153,7 @@ export async function POST(req: NextRequest) {
         notes: string;
       };
 
-      const id = `winespies_studio_${nanoid(8)}`;
+      const id = `${brandId}_studio_${nanoid(8)}`;
       const frontmatter: Record<string, unknown> = {
         id,
         label: result.label || filename,
@@ -190,5 +189,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ created, skipped, errors });
+  return NextResponse.json({ created, errors });
 }
