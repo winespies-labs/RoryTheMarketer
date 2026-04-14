@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { nanoid } from "nanoid";
 import { getPrisma } from "@/lib/prisma";
 import { readReviewsFile } from "@/lib/reviews-file";
-import type { Review, ReviewSource, ReviewsData } from "@/lib/reviews";
+import type { Review, ReviewSource, ReviewsData, UspCategory } from "@/lib/reviews";
 
 function rowToReview(row: {
   id: string;
@@ -15,6 +15,10 @@ function rowToReview(row: {
   slackMessageTs: string | null;
   starred: boolean;
   topics: string[];
+  uspCategory: string | null;
+  adScore: number | null;
+  extractedQuote: string | null;
+  scoredAt: Date | null;
 }): Review {
   return {
     id: row.id,
@@ -27,6 +31,10 @@ function rowToReview(row: {
     slackMessageTs: row.slackMessageTs ?? undefined,
     starred: row.starred,
     topics: row.topics?.length ? row.topics : undefined,
+    uspCategory: (row.uspCategory as UspCategory | null) ?? null,
+    adScore: row.adScore ?? null,
+    extractedQuote: row.extractedQuote ?? null,
+    scoredAt: row.scoredAt?.toISOString() ?? null,
   };
 }
 
@@ -73,6 +81,10 @@ export async function importJsonToDbIfEmpty(brandId: string): Promise<void> {
         slackMessageTs: r.slackMessageTs ?? null,
         starred: r.starred ?? false,
         topics: r.topics ?? [],
+        uspCategory: r.uspCategory ?? null,
+        adScore: r.adScore ?? null,
+        extractedQuote: r.extractedQuote ?? null,
+        scoredAt: r.scoredAt ? new Date(r.scoredAt) : null,
       })),
     });
     await tx.brandReviewMeta.upsert({
@@ -274,4 +286,62 @@ export async function listReviewsFromDb(
     updatedAt: meta?.updatedAt.toISOString() ?? new Date().toISOString(),
     slackChannelId: meta?.slackChannelId ?? undefined,
   };
+}
+
+export async function updateReviewScoringDb(
+  brandId: string,
+  reviewId: string,
+  scoring: {
+    uspCategory: UspCategory | null;
+    adScore: number;
+    extractedQuote: string;
+  }
+): Promise<void> {
+  const prisma = getPrisma();
+  await prisma.customerReview.updateMany({
+    where: { id: reviewId, brandId },
+    data: {
+      uspCategory: scoring.uspCategory,
+      adScore: scoring.adScore,
+      extractedQuote: scoring.extractedQuote,
+      scoredAt: new Date(),
+    },
+  });
+}
+
+export async function loadUnscoredReviewsDb(brandId: string): Promise<Review[]> {
+  const prisma = getPrisma();
+  const rows = await prisma.customerReview.findMany({
+    where: { brandId, scoredAt: null },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map(rowToReview);
+}
+
+export async function getUnscoredCountDb(brandId: string): Promise<number> {
+  const prisma = getPrisma();
+  return prisma.customerReview.count({ where: { brandId, scoredAt: null } });
+}
+
+/** Returns top 5 scored reviews per USP category, ordered by adScore desc. */
+export async function loadTopTestimonialsDb(
+  brandId: string
+): Promise<Review[]> {
+  const prisma = getPrisma();
+  const categories: UspCategory[] = ["best-price", "locker", "satisfaction-guaranteed"];
+  const results = await Promise.all(
+    categories.map((cat) =>
+      prisma.customerReview.findMany({
+        where: {
+          brandId,
+          uspCategory: cat,
+          adScore: { not: null },
+          extractedQuote: { not: null },
+        },
+        orderBy: { adScore: "desc" },
+        take: 5,
+      })
+    )
+  );
+  return results.flat().map(rowToReview);
 }
