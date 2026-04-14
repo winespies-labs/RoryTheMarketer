@@ -61,12 +61,12 @@ export default function AdBuilderLanding() {
         {/* Creative Ad Studio */}
         <Link
           href="/creative/ad-builder/studio"
-          className="group rounded-xl border border-border bg-surface p-7 hover:border-border/80 transition-colors flex flex-col gap-3 opacity-80"
+          className="group rounded-xl border border-border bg-surface p-7 hover:border-accent transition-colors flex flex-col gap-3"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-muted/10 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
               <svg
-                className="w-5 h-5 text-muted"
+                className="w-5 h-5 text-accent"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -80,11 +80,11 @@ export default function AdBuilderLanding() {
               </svg>
             </div>
             <div>
-              <h2 className="font-semibold text-muted">
+              <h2 className="font-semibold group-hover:text-accent transition-colors">
                 Creative Ad Studio
               </h2>
               <div className="text-xs text-muted font-medium mt-0.5">
-                Coming soon
+                Brand ads
               </div>
             </div>
           </div>
