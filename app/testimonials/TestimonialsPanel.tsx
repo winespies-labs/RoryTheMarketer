@@ -66,7 +66,8 @@ function TestimonialCard({
       {/* Quote */}
       <p className="text-sm font-medium text-foreground leading-relaxed">
         {review.extractedQuote ? (
-          <>"{review.extractedQuote}"</>
+          <>&ldquo;{review.extractedQuote}&rdquo;</>
+
         ) : (
           <span className="text-muted italic">
             {review.content.slice(0, 200)}
@@ -140,6 +141,7 @@ export default function TestimonialsPanel() {
   const [unscoredCount, setUnscoredCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [scoring, setScoring] = useState(false);
+  const [scoredCount, setScoredCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const fetchTestimonials = useCallback(async () => {
@@ -170,8 +172,21 @@ export default function TestimonialsPanel() {
 
   const handleScore = async () => {
     setScoring(true);
-    await fetch("/api/testimonials/score?brand=winespies", { method: "POST" });
+    setScoredCount(0);
+    let done = false;
+    while (!done) {
+      try {
+        const res = await fetch("/api/testimonials/score?brand=winespies", { method: "POST" });
+        if (!res.ok) break;
+        const data = await res.json() as { scored: number; remaining: number };
+        setScoredCount((prev) => prev + (data.scored ?? 0));
+        if (data.remaining === 0 || data.scored === 0) done = true;
+      } catch {
+        done = true;
+      }
+    }
     setScoring(false);
+    setScoredCount(0);
     await fetchTestimonials();
   };
 
@@ -211,7 +226,7 @@ export default function TestimonialsPanel() {
               : "bg-border text-muted cursor-not-allowed"
           }`}
         >
-          {scoring ? "Scoring…" : "Score unscored"}
+          {scoring ? `Scoring… ${scoredCount} done` : "Score unscored"}
           {unscoredCount > 0 && !scoring && (
             <span className="bg-white/20 text-white text-[11px] font-bold px-1.5 py-0.5 rounded-full">
               {unscoredCount}

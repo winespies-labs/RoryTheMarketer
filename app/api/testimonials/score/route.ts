@@ -80,11 +80,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ scored: 0, remaining: 0 });
   }
 
+  // Process one batch per call so we stay well within the 60s maxDuration.
+  // The client loops until remaining === 0.
   const BATCH_SIZE = 20;
   let scored = 0;
   let errors = 0;
 
-  for (let i = 0; i < unscored.length; i += BATCH_SIZE) {
+  for (let i = 0; i < Math.min(unscored.length, BATCH_SIZE); i += BATCH_SIZE) {
     const batch = unscored.slice(i, i + BATCH_SIZE);
     try {
       const results = await scoreBatch(
