@@ -251,6 +251,15 @@ function buildTypeSpecificInstructions(type: AdType): string {
         "- Tone should feel editorial or magazine-quality, not hard sell",
       ].join("\n");
 
+    case "usp":
+      return [
+        "AD TYPE: USP / Brand Statement",
+        "This is a brand-level ad focused on a unique selling proposition.",
+        "Emphasize the brand's core differentiator or value statement.",
+        "No wine-specific details — this is brand awareness copy.",
+        "Keep it bold, direct, and benefit-focused.",
+      ].join("\n");
+
     case "pdp":
     default:
       return [

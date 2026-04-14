@@ -159,6 +159,8 @@ export interface WineDetails {
   // Lifestyle fields
   tagline?: string;
   briefDescription?: string;
+  // USP fields
+  usp?: string;
 }
 
 export const STYLES_FILENAME = "styles.json";
