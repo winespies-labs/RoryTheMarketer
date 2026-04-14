@@ -8,6 +8,12 @@ const sections = [
     badge: "New",
   },
   {
+    title: "Ad Studio",
+    description: "Build brand ads — USPs, testimonials, lifestyle, offers. Pick a style, configure copy, generate with Gemini.",
+    href: "/creative/ad-builder/studio",
+    badge: "New",
+  },
+  {
     title: "Briefs",
     description: "Generate ad creative briefs with brand context and persona targeting.",
     href: "/briefs",

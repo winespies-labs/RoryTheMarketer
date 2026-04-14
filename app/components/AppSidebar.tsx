@@ -47,6 +47,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Overview", href: "/creative" },
       { label: "Briefs", href: "/briefs" },
       { label: "PDP Builder", href: "/creative/pdp" },
+      { label: "Ad Studio", href: "/creative/ad-builder/studio" },
     ],
   },
   {
