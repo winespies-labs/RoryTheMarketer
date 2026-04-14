@@ -9,6 +9,7 @@ import type {
   FieldStatus,
 } from "../../ad-builder/_shared/wineAdContext";
 import type { WineOverrides } from "../hooks/useGenerator";
+import TestimonialsPicker from "./TestimonialsPicker";
 
 // Maps field keys to WineOverrides keys for inline editing
 const FIELD_TO_OVERRIDE: Partial<Record<string, keyof WineOverrides>> = {
@@ -273,6 +274,19 @@ export default function DataReview({
   onGenerate,
 }: DataReviewProps) {
   const canGenerate = batch.blocked === 0;
+  const [testimonialQuote, setTestimonialQuote] = useState<string | undefined>(
+    undefined
+  );
+
+  const handleTestimonialSelect = (quote: string) => {
+    const isDeselecting = testimonialQuote === quote;
+    setTestimonialQuote(isDeselecting ? undefined : quote);
+    if (isDeselecting) {
+      batch.wines.forEach((ctx) => onOverride(ctx.sale_id, "pullQuote", ""));
+    } else {
+      batch.wines.forEach((ctx) => onOverride(ctx.sale_id, "pullQuote", quote));
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -334,6 +348,11 @@ export default function DataReview({
           />
         ))}
       </div>
+
+      <TestimonialsPicker
+        onSelect={handleTestimonialSelect}
+        selectedQuote={testimonialQuote}
+      />
     </div>
   );
 }
