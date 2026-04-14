@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
 
   // Process one batch per call so we stay well within the 60s maxDuration.
   // The client loops until remaining === 0.
-  const BATCH_SIZE = 20;
+  const BATCH_SIZE = 8;
   let scored = 0;
   let errors = 0;
 
