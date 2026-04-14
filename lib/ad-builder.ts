@@ -2,7 +2,7 @@
 
 // --- Ad Type System ---
 
-export type AdType = "pdp" | "testimonial" | "comparison" | "offer" | "ugc" | "lifestyle";
+export type AdType = "pdp" | "testimonial" | "comparison" | "offer" | "ugc" | "lifestyle" | "usp";
 
 export interface AdTypeConfig {
   label: string;
@@ -54,6 +54,13 @@ export const AD_TYPE_CONFIG: Record<AdType, AdTypeConfig> = {
     textColor: "text-pink-800",
     description: "Brand awareness or lifestyle ad — not product-specific",
     fields: ["headline", "tagline", "ctaText", "briefDescription"],
+  },
+  usp: {
+    label: "USP / Brand Statement",
+    color: "bg-indigo-100 border-indigo-300",
+    textColor: "text-indigo-800",
+    description: "Unique selling proposition or brand statement ad",
+    fields: ["headline", "usp", "ctaText"],
   },
 };
 
