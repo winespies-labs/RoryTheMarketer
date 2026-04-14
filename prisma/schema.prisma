@@ -178,6 +178,7 @@ model CustomerReview {
   @@unique([brandId, slackMessageTs])
   @@index([brandId])
   @@index([brandId, starred])
+  @@index([brandId, uspCategory, adScore])
   @@map("customer_reviews")
 }
 
