@@ -1,0 +1,74 @@
+<h2>Where should the Template Manager live?</h2>
+<p class="subtitle">Three options for where to view and edit ad template prompts</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Context Hub → Creative Ops</h3>
+      <p>New "Ad Templates" panel inside the existing Context Hub sidebar, alongside Brand Assets and Meta Comments. Keeps all brand configuration in one place.</p>
+      <div style="margin-top:10px">
+        <div class="mock-nav" style="font-size:11px;padding:6px 10px">Context Hub</div>
+        <div style="display:flex;gap:0;margin-top:4px">
+          <div class="mock-sidebar" style="font-size:11px;width:130px;min-width:130px">
+            <div style="padding:4px 8px;opacity:0.5">Brand Voice</div>
+            <div style="padding:4px 8px;opacity:0.5">Brand Assets</div>
+            <div style="padding:4px 8px;background:rgba(139,92,246,0.12);color:#8B5CF6;font-weight:600">▶ Ad Templates</div>
+            <div style="padding:4px 8px;opacity:0.5">Meta Comments</div>
+          </div>
+          <div class="mock-content" style="font-size:11px;flex:1">
+            <div style="font-weight:600;margin-bottom:6px">Wine Spies PDP Cult 1</div>
+            <div style="opacity:0.6;margin-bottom:4px">Generation Prompt</div>
+            <div style="background:#1a1a1a;color:#ccc;padding:6px 8px;border-radius:4px;font-family:monospace;font-size:10px">BACKGROUND: Near-black (#0A0A0A) with dramatic…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Standalone Page — /creative/templates</h3>
+      <p>Dedicated page in the Creative sidebar section, separate from Context Hub. Left panel lists templates, right panel shows details + editable prompt.</p>
+      <div style="margin-top:10px">
+        <div class="mock-nav" style="font-size:11px;padding:6px 10px">Creative / Templates</div>
+        <div style="display:flex;gap:0;margin-top:4px">
+          <div class="mock-sidebar" style="font-size:11px;width:130px;min-width:130px">
+            <div style="padding:4px 8px;opacity:0.5">PDP Cult 1</div>
+            <div style="padding:4px 8px;background:rgba(139,92,246,0.12);color:#8B5CF6;font-weight:600">▶ Lifestyle 1</div>
+            <div style="padding:4px 8px;opacity:0.5">+ Add Template</div>
+          </div>
+          <div class="mock-content" style="font-size:11px;flex:1">
+            <div style="font-weight:600;margin-bottom:4px">Lifestyle 1</div>
+            <div style="opacity:0.6;margin-bottom:4px;font-size:10px">Generation Prompt</div>
+            <div style="background:#1a1a1a;color:#ccc;padding:6px 8px;border-radius:4px;font-family:monospace;font-size:10px">BACKGROUND: Warm golden-hour light…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Inside PDP Builder — Style Selector</h3>
+      <p>Edit button on each template card in Step 2 of the PDP Builder. Opens a drawer or modal to view and edit the generation prompt inline where you use it.</p>
+      <div style="margin-top:10px">
+        <div class="mock-nav" style="font-size:11px;padding:6px 10px">PDP Builder → Step 2: Select Styles</div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <div style="border:1px solid #333;border-radius:6px;padding:8px;flex:1;position:relative">
+            <div style="background:#111;height:50px;border-radius:4px;margin-bottom:6px"></div>
+            <div style="font-size:10px;font-weight:600">PDP Cult 1</div>
+            <div style="font-size:10px;color:#8B5CF6;margin-top:4px;cursor:pointer">✏️ Edit prompt</div>
+          </div>
+          <div style="border:1px solid #333;border-radius:6px;padding:8px;flex:1;opacity:0.5">
+            <div style="background:#111;height:50px;border-radius:4px;margin-bottom:6px"></div>
+            <div style="font-size:10px;font-weight:600">Lifestyle 1</div>
+            <div style="font-size:10px;color:#666;margin-top:4px">✏️ Edit prompt</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

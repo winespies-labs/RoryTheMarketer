@@ -1,0 +1,66 @@
+<h2>What should the home page become?</h2>
+<p class="subtitle">Currently: 4 plain nav cards. What's the right replacement?</p>
+
+<div class="options">
+  <div class="option" data-choice="better-cards" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Polished Nav Cards</h3>
+      <p>Same idea, much better execution. Larger cards with icons, richer descriptions, and a cleaner grid. Still purely navigational — just looks great.</p>
+      <div style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:11px;">
+        <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:8px; padding:10px;">
+          <div style="font-size:16px; margin-bottom:4px;">📚</div>
+          <div style="font-weight:600; color:#1c1917;">Context Hub</div>
+          <div style="color:#78716c; font-size:10px; margin-top:2px;">Brand voice, personas & assets</div>
+        </div>
+        <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:8px; padding:10px;">
+          <div style="font-size:16px; margin-bottom:4px;">✏️</div>
+          <div style="font-weight:600; color:#1c1917;">Copywriting</div>
+          <div style="color:#78716c; font-size:10px; margin-top:2px;">Editor, library & swipe files</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="dashboard" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Mini Dashboard</h3>
+      <p>Quick-access links to the tools you use most, plus a few at-a-glance stats (recent reviews, active campaigns, last copy draft). More useful than pure navigation.</p>
+      <div style="margin-top:10px; font-size:11px;">
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <div style="flex:1; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:8px; text-align:center;">
+            <div style="font-weight:700; font-size:15px; color:#166534;">142</div>
+            <div style="color:#4ade80; font-size:10px;">Reviews</div>
+          </div>
+          <div style="flex:1; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:8px; text-align:center;">
+            <div style="font-weight:700; font-size:15px; color:#1e40af;">3</div>
+            <div style="color:#60a5fa; font-size:10px;">Active Campaigns</div>
+          </div>
+          <div style="flex:1; background:#fef9c3; border:1px solid #fde047; border-radius:6px; padding:8px; text-align:center;">
+            <div style="font-weight:700; font-size:15px; color:#713f12;">12</div>
+            <div style="color:#ca8a04; font-size:10px;">Saved Swipes</div>
+          </div>
+        </div>
+        <div style="background:#f5f3ff; border-radius:6px; padding:8px; color:#6d28d9;">Quick links: Editor · Wines · Chat →</div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="recents" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Recent Activity + Quick Launch</h3>
+      <p>A "what you were last doing" view. Shows recently visited tools and a compact launcher. Reduces navigation clicks for your daily workflow.</p>
+      <div style="margin-top:10px; font-size:11px; color:#1c1917;">
+        <div style="font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#78716c; margin-bottom:6px;">Recent</div>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <div style="background:#fff; border:1px solid #e7e5e4; border-radius:6px; padding:6px 10px; display:flex; align-items:center; gap:8px;">
+            <span>✏️</span> <span>Copywriting Editor</span> <span style="margin-left:auto; color:#78716c; font-size:10px;">2h ago</span>
+          </div>
+          <div style="background:#fff; border:1px solid #e7e5e4; border-radius:6px; padding:6px 10px; display:flex; align-items:center; gap:8px;">
+            <span>🍷</span> <span>Wines Pipeline</span> <span style="margin-left:auto; color:#78716c; font-size:10px;">yesterday</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

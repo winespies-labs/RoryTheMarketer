@@ -1,0 +1,55 @@
+<h2>How should we approach this?</h2>
+<p class="subtitle">Three ways to implement the nav icons, top bar, and home page polish</p>
+
+<div class="options">
+  <div class="option" data-choice="targeted" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Targeted Changes Only <span style="font-size:11px; background:#f0fdf4; color:#166534; padding:2px 8px; border-radius:99px; margin-left:6px;">Recommended</span></h3>
+      <p>Change exactly the three things we discussed. No collateral refactoring, no new abstractions.</p>
+      <ul style="font-size:12px; color:#78716c; margin-top:8px; padding-left:16px; line-height:1.8;">
+        <li>Sidebar: add icons, remove redundant "Overview" nav items</li>
+        <li>Layout shell: add sticky top bar component (breadcrumb + page title)</li>
+        <li>Home page: add icons to cards, tighten typography</li>
+      </ul>
+      <div class="pros-cons" style="margin-top:10px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Fast, low risk</li><li>Minimal files changed</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Doesn't fix other inconsistencies</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="systematic" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Systematic Pass</h3>
+      <p>Same three changes, plus a light consistency sweep of the other main pages while we're touching layouts.</p>
+      <ul style="font-size:12px; color:#78716c; margin-top:8px; padding-left:16px; line-height:1.8;">
+        <li>All of A, plus…</li>
+        <li>Standardize spacing and remove inline h1 headers from each page (replaced by top bar)</li>
+        <li>Normalize button styles across Reviews, Swipes, Copywriting pages</li>
+      </ul>
+      <div class="pros-cons" style="margin-top:10px;">
+        <div class="pros"><h4>Pros</h4><ul><li>More coherent result</li><li>Fixes things you'll notice later</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>More files, harder to review</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="component" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Extract Shared Components</h3>
+      <p>Build a small set of reusable UI primitives (PageHeader, NavIcon map) that all pages share.</p>
+      <ul style="font-size:12px; color:#78716c; margin-top:8px; padding-left:16px; line-height:1.8;">
+        <li>All of A + B, plus…</li>
+        <li>New <code>app/components/PageHeader.tsx</code> used by every page</li>
+        <li>Centralized icon map for nav</li>
+      </ul>
+      <div class="pros-cons" style="margin-top:10px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Most maintainable long-term</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Most work, overkill for a cleanup</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:20px;">I recommend A — targeted, fast, and focused on exactly what we discussed.</p>

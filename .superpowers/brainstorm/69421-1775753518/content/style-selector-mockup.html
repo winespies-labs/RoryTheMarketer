@@ -1,0 +1,154 @@
+<h2>Style Selector — Enhanced Mockup</h2>
+<p class="subtitle">Template management lives here: select, edit prompts, add new. Click around to see the states.</p>
+
+<div class="mockup">
+  <div class="mockup-header">PDP Builder → Step 2: Select Styles</div>
+  <div class="mockup-body" style="padding:16px;background:#0f0f0f">
+
+    <!-- Header bar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div>
+        <div style="font-size:14px;font-weight:600;color:#f0f0f0">Select Styles</div>
+        <div style="font-size:11px;color:#666;margin-top:2px">Each style is a reference ad. Select one or more, then generate.</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div style="padding:5px 10px;font-size:11px;color:#666;cursor:pointer">← Back</div>
+        <div style="padding:5px 12px;font-size:11px;font-weight:600;background:#8B5CF6;color:white;border-radius:6px">Next →</div>
+      </div>
+    </div>
+
+    <!-- Summary bar -->
+    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:8px 12px;font-size:11px;color:#888;margin-bottom:12px">
+      3 wines × <strong style="color:#f0f0f0">1 style</strong> = <strong style="color:#8B5CF6">3 ads</strong>
+    </div>
+
+    <!-- CARD GRID -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+
+      <!-- CARD 1: Normal (not selected, no edit open) -->
+      <div>
+        <div style="border:1px solid #2a2a2a;border-radius:8px;overflow:hidden;background:#1a1a1a">
+          <div style="position:relative">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#1a0a0a,#3d1010);display:flex;align-items:center;justify-content:center">
+              <div style="color:#ffffff;font-size:9px;font-weight:700;text-align:center;padding:8px;line-height:1.3">
+                <div style="font-size:18px;margin-bottom:4px">🍷</div>
+                CULT DARK<br/>Reference Image
+              </div>
+            </div>
+            <div style="position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;border:2px solid #444;background:#1a1a1a"></div>
+          </div>
+          <div style="padding:8px 10px">
+            <div style="font-size:11px;font-weight:600;color:#f0f0f0;margin-bottom:6px">Wine Spies PDP Cult 1</div>
+            <div style="display:flex;gap:6px">
+              <div style="font-size:10px;color:#8B5CF6;cursor:pointer;padding:2px 0">✏️ Edit prompt</div>
+            </div>
+          </div>
+        </div>
+        <!-- No expanded panel -->
+      </div>
+
+      <!-- CARD 2: Selected + Edit prompt EXPANDED -->
+      <div style="grid-column:span 1">
+        <div style="border:2px solid #8B5CF6;border-radius:8px 8px 0 0;overflow:hidden;background:#1a1a1a">
+          <div style="position:relative">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#0a1a1a,#102830);display:flex;align-items:center;justify-content:center">
+              <div style="color:#ffffff;font-size:9px;font-weight:700;text-align:center;padding:8px;line-height:1.3">
+                <div style="font-size:18px;margin-bottom:4px">🌅</div>
+                LIFESTYLE<br/>Reference Image
+              </div>
+            </div>
+            <div style="position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;border:2px solid #8B5CF6;background:#8B5CF6;display:flex;align-items:center;justify-content:center">
+              <span style="color:white;font-size:8px">✓</span>
+            </div>
+          </div>
+          <div style="padding:8px 10px">
+            <div style="font-size:11px;font-weight:600;color:#f0f0f0;margin-bottom:6px">Lifestyle 1</div>
+            <div style="display:flex;gap:6px">
+              <div style="font-size:10px;color:#8B5CF6;cursor:pointer;padding:2px 0">▲ Close editor</div>
+            </div>
+          </div>
+        </div>
+        <!-- EXPANDED EDIT PANEL — spans full grid width below this card -->
+        <div style="border:2px solid #8B5CF6;border-top:none;border-radius:0 0 8px 8px;background:#141414;padding:12px">
+          <div style="font-size:10px;font-weight:600;color:#8B5CF6;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Generation Prompt</div>
+          <textarea style="width:100%;box-sizing:border-box;background:#0d0d0d;border:1px solid #333;border-radius:4px;color:#ccc;font-family:monospace;font-size:10px;line-height:1.5;padding:8px;height:100px;resize:vertical" readonly>BACKGROUND: Near-black (#0A0A0A) with warm golden-hour light radiating from behind the bottle. Soft bokeh of vineyard rows in the far background.
+
+BOTTLE: Right-center, full bleed, slightly angled — dominant visual element.
+
+LEFT SIDE TEXT:
+1. WINE NAME: "{{wineName}}" — white serif, ~22px
+2. BODY: "{{pullQuote}}" — light gray, ~12px, 3 lines max
+
+PRICE BLOCK: Two identical pills side by side…</textarea>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+            <div style="font-size:10px;color:#555">Changes save to Postgres — survive redeploys</div>
+            <div style="display:flex;gap:6px">
+              <div style="font-size:10px;color:#666;cursor:pointer;padding:4px 8px">Discard</div>
+              <div style="font-size:10px;font-weight:600;background:#8B5CF6;color:white;border-radius:4px;padding:4px 10px;cursor:pointer">Save prompt</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADD TEMPLATE CARD -->
+      <div>
+        <div style="border:1px dashed #333;border-radius:8px;overflow:hidden;background:#111;cursor:pointer">
+          <div style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px">
+            <div style="width:32px;height:32px;border-radius:50%;border:2px dashed #444;display:flex;align-items:center;justify-content:center;color:#555;font-size:18px">+</div>
+            <div style="font-size:11px;color:#555;text-align:center;line-height:1.4">Upload reference image<br/>to add a new template</div>
+          </div>
+          <div style="padding:8px 10px;border-top:1px solid #1e1e1e">
+            <div style="font-size:11px;font-weight:500;color:#555">Add Template</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ADD TEMPLATE EXPANDED (shown below when + card is clicked) -->
+    <div style="margin-top:10px;border:1px solid #2a2a2a;border-radius:8px;background:#141414;padding:14px">
+      <div style="font-size:11px;font-weight:600;color:#f0f0f0;margin-bottom:10px">Add New Template</div>
+      <div style="display:grid;grid-template-columns:120px 1fr;gap:12px">
+        <!-- Image upload -->
+        <div>
+          <div style="aspect-ratio:1;border:2px dashed #333;border-radius:6px;background:#0d0d0d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer">
+            <div style="font-size:18px">📁</div>
+            <div style="font-size:9px;color:#555;text-align:center">Upload<br/>reference image</div>
+          </div>
+          <div style="font-size:9px;color:#555;margin-top:4px;text-align:center">PNG/JPG</div>
+        </div>
+        <!-- Fields -->
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div>
+            <div style="font-size:9px;color:#666;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.05em">Template Name</div>
+            <div style="background:#0d0d0d;border:1px solid #333;border-radius:4px;padding:5px 8px;font-size:11px;color:#888">e.g. "Lifestyle — Warm Tones"</div>
+          </div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+              <div style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:0.05em">Generation Prompt</div>
+              <div style="font-size:9px;color:#8B5CF6;cursor:pointer">✨ Auto-generate from image</div>
+            </div>
+            <div style="background:#0d0d0d;border:1px solid #333;border-radius:4px;padding:5px 8px;font-size:10px;color:#555;font-family:monospace;height:60px">Write the Gemini prompt here, or click Auto-generate…</div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:6px">
+            <div style="font-size:10px;color:#666;cursor:pointer;padding:4px 8px">Cancel</div>
+            <div style="font-size:10px;font-weight:600;background:#8B5CF6;color:white;border-radius:4px;padding:4px 12px;cursor:pointer">Create Template</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section" style="margin-top:16px">
+  <h3>Key behaviours</h3>
+  <ul style="font-size:13px;line-height:1.8;color:#ccc;padding-left:20px">
+    <li><strong>Edit prompt</strong> expands inline below the card (your choice C) — only one open at a time</li>
+    <li><strong>Save prompt</strong> → PUT /api/ad-reference/update → persists to Postgres immediately</li>
+    <li><strong>Add Template</strong> card always last — expands a form below the grid</li>
+    <li><strong>Auto-generate from image</strong> → sends reference image to Claude Vision → returns a Nano Banana 2 style Gemini prompt pre-filled in the textarea</li>
+    <li>New template requires: image + name + prompt → POST /api/ad-reference/create</li>
+    <li>Select/deselect cards works the same as today — edit state doesn't affect selection</li>
+  </ul>
+</div>

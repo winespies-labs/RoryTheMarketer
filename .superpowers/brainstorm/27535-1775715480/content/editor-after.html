@@ -1,0 +1,26 @@
+<h2>After moving drafts to the library, what should the editor look like?</h2>
+<p class="subtitle">The draft list below the editor goes away. What replaces it?</p>
+
+<div class="options">
+  <div class="option" data-choice="nothing" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Editor is stateless — no list at all</h3>
+      <p>The editor just edits whatever is currently loaded. To switch pieces, you go to the library and click "Open." The editor URL could include the writeup ID (e.g. <code>/copywriting/editor?id=abc</code>). Clean, focused writing environment.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="mini-switcher" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Small "current piece" indicator + link to library</h3>
+      <p>A slim bar at the top of the editor shows the current piece title and a "← All writeups" link back to the library. No full list inline — just enough context to know what you're editing.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="side-panel" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Sidebar list replaces the bottom drawer</h3>
+      <p>Move the writeup list from the bottom drawer to a left sidebar panel within the editor. Still quick to switch without leaving the page, just repositioned.</p>
+    </div>
+  </div>
+</div>
