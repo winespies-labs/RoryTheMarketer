@@ -1,0 +1,137 @@
+
+> rory-the-marketer@0.1.0 build
+> prisma generate && next build
+
+Prisma schema loaded from prisma/schema.prisma
+
+✔ Generated Prisma Client (v6.19.2) to ./node_modules/@prisma/client in 102ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Want to turn off tips and other hints? https://pris.ly/tip-4-nohints
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 5.3s
+  Running TypeScript ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/101) ...
+  Generating static pages using 9 workers (25/101) 
+  Generating static pages using 9 workers (50/101) 
+  Generating static pages using 9 workers (75/101) 
+✓ Generating static pages using 9 workers (101/101) in 268.7ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /ads-manager
+├ ○ /ads-manager/ad-sets
+├ ○ /ads-manager/creatives
+├ ○ /ads-manager/settings
+├ ○ /ads-manager/workshop
+├ ƒ /api/ad-reference/batch-ingest
+├ ƒ /api/ad-reference/build-prompt
+├ ƒ /api/ad-reference/create
+├ ƒ /api/ad-reference/delete
+├ ƒ /api/ad-reference/detail
+├ ƒ /api/ad-reference/generate
+├ ƒ /api/ad-reference/generate-full
+├ ƒ /api/ad-reference/generate-prompt
+├ ƒ /api/ad-reference/generate-statics
+├ ƒ /api/ad-reference/image
+├ ƒ /api/ad-reference/list
+├ ƒ /api/ad-reference/update
+├ ƒ /api/ads-library/results
+├ ƒ /api/ads-library/search
+├ ƒ /api/ads/settings
+├ ƒ /api/analyze-competitor
+├ ƒ /api/auth/login
+├ ƒ /api/auth/logout
+├ ƒ /api/brand-assets
+├ ƒ /api/brand-assets/image
+├ ƒ /api/brand-assets/upload
+├ ƒ /api/brands
+├ ƒ /api/brief/generate
+├ ƒ /api/chat
+├ ƒ /api/chat/history
+├ ƒ /api/context-library
+├ ƒ /api/context/bundle
+├ ƒ /api/context/image-prompt-modifier
+├ ƒ /api/context/section
+├ ƒ /api/context/status
+├ ƒ /api/copywriter
+├ ƒ /api/creative/generate-copy
+├ ƒ /api/creative/generate-image
+├ ƒ /api/critique
+├ ƒ /api/cron/reviews-sync
+├ ƒ /api/drill-journal
+├ ƒ /api/foreplay/ads
+├ ƒ /api/foreplay/sync
+├ ƒ /api/meta-ads/ads
+├ ƒ /api/meta-ads/adsets
+├ ƒ /api/meta-ads/adsets-live
+├ ƒ /api/meta-ads/campaigns
+├ ƒ /api/meta-ads/insights-daily
+├ ƒ /api/meta-ads/insights-history
+├ ƒ /api/meta-ads/sync
+├ ƒ /api/meta-ads/update-campaign
+├ ƒ /api/meta-comment-themes
+├ ƒ /api/meta-comments
+├ ƒ /api/meta-comments/sync
+├ ƒ /api/pdp/generate
+├ ƒ /api/pdp/generate-copy
+├ ƒ /api/pdp/publish
+├ ƒ /api/pdp/styles
+├ ƒ /api/review-themes
+├ ƒ /api/reviews
+├ ƒ /api/reviews/[id]
+├ ƒ /api/reviews/config
+├ ƒ /api/reviews/sync-slack
+├ ƒ /api/reviews/upload
+├ ƒ /api/studio/generate
+├ ƒ /api/studio/generate-copy
+├ ƒ /api/studio/usps
+├ ƒ /api/swipe-analysis/analyze-single
+├ ƒ /api/swipe-analysis/corpus
+├ ƒ /api/swipe-analysis/run
+├ ƒ /api/swipe-analysis/swipes
+├ ƒ /api/swipe-files/import
+├ ƒ /api/swipe-inspiration
+├ ƒ /api/swipe-inspiration/add-to-context
+├ ƒ /api/swipe-inspiration/image
+├ ƒ /api/swipe-inspiration/upload
+├ ƒ /api/testimonials/score
+├ ƒ /api/wines/current
+├ ƒ /api/workshop/chat
+├ ƒ /api/workshop/generate-image
+├ ƒ /api/workshop/publish
+├ ƒ /api/writeups
+├ ƒ /api/writeups/[id]
+├ ƒ /api/writeups/research
+├ ○ /briefs
+├ ○ /chat
+├ ○ /context-hub
+├ ○ /copywriter
+├ ○ /copywriting
+├ ○ /copywriting/drill
+├ ○ /copywriting/editor
+├ ○ /copywriting/library
+├ ○ /copywriting/swipe-analyzer
+├ ○ /creative
+├ ○ /creative/ad-builder
+├ ○ /creative/ad-builder/studio
+├ ○ /creative/pdp
+├ ○ /login
+├ ○ /reviews
+└ ○ /swipes
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
