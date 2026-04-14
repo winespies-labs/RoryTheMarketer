@@ -56,8 +56,16 @@ ${reviewList}`,
     ],
   });
 
-  const text = msg.content[0].type === "text" ? msg.content[0].text : "";
-  const parsed = JSON.parse(text.trim()) as ScoreResult[];
+  const textBlock = msg.content.find((b) => b.type === "text");
+  if (!textBlock || textBlock.type !== "text") {
+    throw new Error("Claude returned non-text response");
+  }
+  let parsed: ScoreResult[];
+  try {
+    parsed = JSON.parse(textBlock.text.trim()) as ScoreResult[];
+  } catch (e) {
+    throw new Error(`Failed to parse Claude response: ${String(e)}`);
+  }
   return parsed;
 }
 
