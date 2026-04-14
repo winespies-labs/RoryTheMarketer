@@ -1,5 +1,5 @@
 import { getPrisma } from "./prisma";
-import type { MetaCampaign, MetaAdSet, MetaAd } from "./meta-ads";
+import type { MetaCampaign, MetaAdSet, MetaAd, MetaCampaignsData, MetaAdSetsData } from "./meta-ads";
 
 // ── Campaigns ──
 
@@ -252,4 +252,58 @@ export async function logSync(
       completedAt: new Date(),
     },
   });
+}
+
+// ── Read snapshots from DB (used when filesystem is unavailable, e.g. Railway) ──
+
+export async function readCampaignsFromDB(brandId: string): Promise<MetaCampaignsData | null> {
+  const prisma = getPrisma();
+  const rows = await prisma.metaCampaignSnapshot.findMany({
+    where: { brandId },
+    orderBy: { syncedAt: "desc" },
+  });
+  if (rows.length === 0) return null;
+
+  const syncedAt = rows[0].syncedAt.toISOString();
+  const accountId = rows[0].accountId;
+
+  const campaigns: MetaCampaign[] = rows.map((r) => ({
+    id: r.metaCampaignId,
+    name: r.name,
+    status: r.status,
+    effective_status: r.effectiveStatus,
+    objective: r.objective ?? undefined,
+    daily_budget: r.dailyBudget ?? undefined,
+    lifetime_budget: r.lifetimeBudget ?? undefined,
+    insights: r.insights as MetaCampaign["insights"] ?? undefined,
+  }));
+
+  return { syncedAt, accountId, timeRanges: [], campaigns };
+}
+
+export async function readAdSetsFromDB(brandId: string): Promise<MetaAdSetsData | null> {
+  const prisma = getPrisma();
+  const rows = await prisma.metaAdSetSnapshot.findMany({
+    where: { brandId },
+    orderBy: { syncedAt: "desc" },
+  });
+  if (rows.length === 0) return null;
+
+  const syncedAt = rows[0].syncedAt.toISOString();
+  const accountId = rows[0].accountId;
+
+  const adsets: MetaAdSet[] = rows.map((r) => ({
+    id: r.metaAdSetId,
+    name: r.name,
+    status: r.status,
+    effective_status: r.effectiveStatus,
+    campaign_id: r.campaignId,
+    daily_budget: r.dailyBudget ?? undefined,
+    lifetime_budget: r.lifetimeBudget ?? undefined,
+    bid_strategy: r.bidStrategy ?? undefined,
+    bid_amount: r.bidAmount ?? undefined,
+    insights: r.insights as MetaAdSet["insights"] ?? undefined,
+  }));
+
+  return { syncedAt, accountId, timeRanges: [], adsets };
 }

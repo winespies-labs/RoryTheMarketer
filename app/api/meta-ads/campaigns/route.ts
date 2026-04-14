@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getBrand } from "@/lib/brands";
 import { type TimeRange, type MetaCampaign, type MetaInsights, TIME_RANGES } from "@/lib/meta-ads";
 import { readMetaCampaigns } from "@/lib/meta-ads-storage";
+import { useDatabase } from "@/lib/database";
+import { readCampaignsFromDB } from "@/lib/meta-ads-db";
 
 type ProjectedCampaign = Omit<MetaCampaign, "insights"> & { insights: MetaInsights | null };
 
@@ -16,7 +18,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid timeRange" }, { status: 400 });
   }
 
-  const data = readMetaCampaigns(brand);
+  const data = useDatabase()
+    ? await readCampaignsFromDB(brand)
+    : readMetaCampaigns(brand);
   if (!data) {
     return NextResponse.json({ syncedAt: null, accountId: null, timeRange, campaigns: [] });
   }
