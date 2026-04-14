@@ -194,7 +194,8 @@ function AddTemplateCard({ brand, onSaved }: { brand: string; onSaved: () => voi
       </div>
 
       {/* Image upload */}
-      <div
+      <button
+        type="button"
         className="w-full aspect-square rounded-lg border-2 border-dashed border-border bg-background flex items-center justify-center cursor-pointer overflow-hidden"
         onClick={() => fileRef.current?.click()}
       >
@@ -204,7 +205,7 @@ function AddTemplateCard({ brand, onSaved }: { brand: string; onSaved: () => voi
         ) : (
           <span className="text-xs text-muted">Click to upload image</span>
         )}
-      </div>
+      </button>
       <input
         ref={fileRef}
         type="file"
@@ -227,8 +228,9 @@ function AddTemplateCard({ brand, onSaved }: { brand: string; onSaved: () => voi
       {analyzed && (
         <>
           <div>
-            <label className="text-xs text-muted block mb-1">Name</label>
+            <label htmlFor="template-name" className="text-xs text-muted block mb-1">Name</label>
             <input
+              id="template-name"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               className="w-full px-3 py-1.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:border-accent"
