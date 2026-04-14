@@ -36,7 +36,7 @@ function StarRating({ rating }: { rating?: number | null }) {
   );
 }
 
-function TestimonialCard({
+function AdScoreCard({
   review,
   onStar,
 }: {
@@ -287,12 +287,12 @@ export default function AdScoresPanel() {
         <div className="text-sm text-muted py-8 text-center">
           {tab === "unscored"
             ? "All reviews have been scored."
-            : "No testimonials found. Score unscored reviews to populate this view."}
+            : "No scored reviews found for this filter."}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((t) => (
-            <TestimonialCard key={t.id} review={t} onStar={handleStar} />
+            <AdScoreCard key={t.id} review={t} onStar={handleStar} />
           ))}
         </div>
       )}

@@ -86,30 +86,28 @@ export async function POST(req: NextRequest) {
   let scored = 0;
   let errors = 0;
 
-  for (let i = 0; i < Math.min(unscored.length, BATCH_SIZE); i += BATCH_SIZE) {
-    const batch = unscored.slice(i, i + BATCH_SIZE);
-    try {
-      const results = await scoreBatch(
-        batch.map((r) => ({
-          id: r.id,
-          content: r.content,
-          title: r.title,
-          rating: r.rating,
-        }))
-      );
-      await Promise.all(
-        results.map((result) =>
-          updateReviewScoring(brandId, result.id, {
-            uspCategory: result.uspCategory,
-            adScore: Math.max(0, Math.min(100, result.adScore)),
-            extractedQuote: result.extractedQuote ?? "",
-          })
-        )
-      );
-      scored += results.length;
-    } catch {
-      errors += batch.length;
-    }
+  const batch = unscored.slice(0, BATCH_SIZE);
+  try {
+    const results = await scoreBatch(
+      batch.map((r) => ({
+        id: r.id,
+        content: r.content,
+        title: r.title,
+        rating: r.rating,
+      }))
+    );
+    await Promise.all(
+      results.map((result) =>
+        updateReviewScoring(brandId, result.id, {
+          uspCategory: result.uspCategory,
+          adScore: Math.max(0, Math.min(100, result.adScore)),
+          extractedQuote: result.extractedQuote ?? "",
+        })
+      )
+    );
+    scored += results.length;
+  } catch {
+    errors += batch.length;
   }
 
   const remaining = await getUnscoredCount(brandId);
