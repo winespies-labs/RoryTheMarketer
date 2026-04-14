@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Build system prompt
-    const bundle = getContextBundle(brandId);
+    const bundle = await getContextBundle(brandId);
     const contextText = formatContextForPrompt(bundle);
     const reviewSnippets = await formatReviewSnippetsForPrompt(brandId, {
       limit: 18,

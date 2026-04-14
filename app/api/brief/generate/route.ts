@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid brand" }, { status: 400 });
   }
 
-  const bundle = getContextBundle(brandId);
+  const bundle = await getContextBundle(brandId);
   const contextText = formatContextForPrompt(bundle);
   const swipeCopy = await buildSwipeCopyContext(brandId, swipeFileIds, includeWhyItWorks);
 

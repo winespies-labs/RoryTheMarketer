@@ -11,6 +11,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unknown brand" }, { status: 400 });
   }
 
-  const bundle = getContextBundle(brandId);
+  const bundle = await getContextBundle(brandId);
   return NextResponse.json(bundle);
 }

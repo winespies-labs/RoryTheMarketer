@@ -8,6 +8,6 @@ export async function GET(req: NextRequest) {
   if (!getBrand(brandId)) {
     return NextResponse.json({ error: "Unknown brand" }, { status: 400 });
   }
-  const bundle = getContextBundle(brandId);
+  const bundle = await getContextBundle(brandId);
   return NextResponse.json({ usps: bundle.usps });
 }

@@ -3,6 +3,8 @@ import path from "path";
 import { getBrandContextDir } from "./brands";
 import { readReviewThemes } from "./review-themes-storage";
 import { readMetaCommentThemes } from "./meta-comments-storage";
+import { loadTopTestimonialsForContext } from "./reviews-storage";
+import type { UspCategory } from "./reviews";
 
 function readMarkdownFile(filePath: string): string {
   if (!fs.existsSync(filePath)) return "";
@@ -21,13 +23,43 @@ export interface ContextBundle {
   imagePromptModifier: string;
   reviewThemes: string;
   metaCommentThemes: string;
+  testimonials: string;
 }
 
-export function getContextBundle(brandId: string): ContextBundle {
+const USP_LABELS: Record<UspCategory, string> = {
+  "best-price": "Best Price",
+  "locker": "The Locker",
+  "satisfaction-guaranteed": "Satisfaction Guaranteed",
+};
+
+export async function getContextBundle(brandId: string): Promise<ContextBundle> {
   const dir = getBrandContextDir(brandId);
 
   const reviewThemes = readReviewThemes(brandId);
   const commentThemes = readMetaCommentThemes(brandId);
+  const topTestimonials = await loadTopTestimonialsForContext(brandId);
+
+  // Format testimonials grouped by USP
+  let testimonialsText = "";
+  if (topTestimonials.length > 0) {
+    const byUsp = new Map<UspCategory, typeof topTestimonials>();
+    for (const t of topTestimonials) {
+      if (!t.uspCategory) continue;
+      const group = byUsp.get(t.uspCategory) ?? [];
+      group.push(t);
+      byUsp.set(t.uspCategory, group);
+    }
+    const sections: string[] = [];
+    for (const [usp, reviews] of byUsp) {
+      const label = USP_LABELS[usp];
+      const quotes = reviews
+        .filter((r) => r.extractedQuote)
+        .map((r) => `  - "${r.extractedQuote}"${r.author ? ` — ${r.author}` : ""}`)
+        .join("\n");
+      if (quotes) sections.push(`### ${label}\n${quotes}`);
+    }
+    testimonialsText = sections.join("\n\n");
+  }
 
   return {
     brand: brandId,
@@ -41,6 +73,7 @@ export function getContextBundle(brandId: string): ContextBundle {
     imagePromptModifier: readMarkdownFile(path.join(dir, "image-prompt-modifier.md")),
     reviewThemes: reviewThemes?.summary ?? "",
     metaCommentThemes: commentThemes?.summary ?? "",
+    testimonials: testimonialsText,
   };
 }
 
@@ -67,6 +100,9 @@ export function formatContextForPrompt(bundle: ContextBundle): string {
   }
   if (bundle.metaCommentThemes) {
     sections.push(`## Ad Comment Themes\n\nThese are recurring themes from comments on the brand's Meta ads. Use these to understand audience reactions and objections.\n\n${bundle.metaCommentThemes}`);
+  }
+  if (bundle.testimonials) {
+    sections.push(`## Top Customer Testimonials\n\nHigh-scoring real customer quotes organized by USP. Use these verbatim or as inspiration for social proof in copy.\n\n${bundle.testimonials}`);
   }
 
   return sections.join("\n\n---\n\n");

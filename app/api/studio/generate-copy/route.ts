@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unknown brand" }, { status: 400 });
   }
 
-  const bundle = getContextBundle(brand);
+  const bundle = await getContextBundle(brand);
   const contextStr = formatContextForPrompt(bundle);
 
   const angleInstructions: Record<string, string> = {

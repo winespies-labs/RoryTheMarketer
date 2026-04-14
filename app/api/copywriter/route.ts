@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const bundle = getContextBundle(brandId);
+    const bundle = await getContextBundle(brandId);
     const contextText = formatContextForPrompt(bundle);
 
     let swipeContext = "";

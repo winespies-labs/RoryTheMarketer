@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ created: [], errors: [] });
   }
 
-  const bundle = getContextBundle(brandId);
+  const bundle = await getContextBundle(brandId);
   const systemPrompt = buildSystemPrompt(bundle.imagePromptModifier);
 
   const imageFiles = getUnregisteredImages();

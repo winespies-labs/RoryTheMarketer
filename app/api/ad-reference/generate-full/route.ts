@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
       ? (rawMime as AllowedMimeType)
       : "image/png";
 
-    const bundle = getContextBundle(brandId);
+    const bundle = await getContextBundle(brandId);
     const systemPrompt = buildSystemPrompt(bundle.imagePromptModifier);
 
     const msg = await client.messages.create({

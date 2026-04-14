@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const bundle = getContextBundle(brandId);
+    const bundle = await getContextBundle(brandId);
     const contextText = formatContextForPrompt(bundle);
 
     // If multiple IDs, generate for each and return grouped
