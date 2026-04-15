@@ -1,15 +1,33 @@
 @import "tailwindcss";
 
+/* Stripe-inspired design tokens */
 :root {
-  --background: #fafaf9;
-  --foreground: #1c1917;
-  --muted: #78716c;
-  --border: #e7e5e4;
-  --accent: #7c3aed;
-  --accent-light: #ede9fe;
-  --surface: #ffffff;
-  --success: #16a34a;
+  /* Surfaces */
+  --background: #f7f9fc;       /* Subtle blue-tinted page bg */
+  --surface: #ffffff;          /* White — cards, sidebar, inputs */
+
+  /* Text */
+  --foreground: #061b31;       /* Deep navy — headings & strong text */
+  --muted: #64748d;            /* Slate — secondary / captions */
+  --label: #273951;            /* Dark slate — form labels */
+
+  /* Brand */
+  --accent: #533afd;           /* Stripe purple */
+  --accent-light: #eeecff;     /* Light purple tint — active nav, badges */
+  --accent-hover: #4434d4;     /* Darker purple for hover states */
+
+  /* Borders */
+  --border: #e5edf5;           /* Blue-tinted — cards, dividers, inputs */
+
+  /* Status */
+  --success: #108c3d;
   --danger: #dc2626;
+
+  /* Elevation shadows (Stripe chromatic depth system) */
+  --shadow-sm: rgba(23,23,23,0.06) 0px 3px 6px;
+  --shadow-md: rgba(23,23,23,0.08) 0px 15px 35px 0px;
+  --shadow-lg: rgba(50,50,93,0.25) 0px 30px 45px -30px, rgba(0,0,0,0.1) 0px 18px 36px -18px;
+  --shadow-xl: rgba(3,3,39,0.25) 0px 14px 21px -14px, rgba(0,0,0,0.1) 0px 8px 17px -8px;
 }
 
 @theme inline {
@@ -22,11 +40,40 @@
   --color-surface: var(--surface);
   --color-success: var(--success);
   --color-danger: var(--danger);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-source-code-pro);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-inter), "SF Pro Display", system-ui, sans-serif;
+  font-weight: 400;
+  font-feature-settings: "ss01";
+}
+
+/* Stripe heading scale — weight 300, tight letter-spacing, deep navy */
+h1 {
+  font-weight: 300;
+  letter-spacing: -0.64px;
+  line-height: 1.10;
+  color: var(--foreground);
+}
+
+h2 {
+  font-weight: 300;
+  letter-spacing: -0.44px;
+  line-height: 1.10;
+  color: var(--foreground);
+}
+
+h3 {
+  font-weight: 300;
+  letter-spacing: -0.22px;
+  line-height: 1.12;
+  color: var(--foreground);
+}
+
+code, kbd, pre {
+  font-family: var(--font-source-code-pro), "SFMono-Regular", monospace;
 }
