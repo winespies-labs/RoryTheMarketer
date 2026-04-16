@@ -214,165 +214,95 @@ export default function ReviewsPanel() {
 
   return (
     <div>
-      <div className="rounded-lg border border-border bg-surface p-5 space-y-5">
-        <p className="text-sm text-muted">
-          In production, a daily Slack sync runs in the server process (UTC hour
-          set by{" "}
-          <code className="text-xs bg-muted px-1 rounded">
-            REVIEWS_SLACK_CRON_HOUR_UTC
-          </code>
-          ) when{" "}
-          <code className="text-xs bg-muted px-1 rounded">SLACK_BOT_TOKEN</code>{" "}
-          and{" "}
-          <code className="text-xs bg-muted px-1 rounded">
-            SLACK_REVIEWS_CHANNEL_ID
-          </code>{" "}
-          are set. Use Sync now anytime for an extra pull, or upload CSV/JSON
-          exports.
-        </p>
+      <div className="space-y-4">
+        {/* Actions + status row */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <button
+            type="button"
+            onClick={handleSyncSlack}
+            disabled={syncBusy}
+            className="px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {syncBusy ? "Syncing…" : "Sync now"}
+          </button>
 
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="text-sm text-muted">
-            {data?.updatedAt
-              ? `Last updated: ${new Date(data.updatedAt).toLocaleString()}`
-              : "No reviews yet"}
-            {summaryLine && (
-              <span className="ml-2">— {summaryLine}</span>
-            )}
-            {data?.slackChannelId && (
-              <span className="block text-xs mt-0.5">
-                Slack channel: {data.slackChannelId}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="block text-xs text-muted font-medium">
-            Slack
-          </label>
-          {slackChannelConfigured ? (
-            <p className="text-sm text-muted">
-              Channel is configured on the server via{" "}
-              <code className="text-xs bg-muted px-1 rounded">
-                SLACK_REVIEWS_CHANNEL_ID
-              </code>
-              . No channel ID needed here.
-            </p>
-          ) : (
-            <p className="text-xs text-muted mb-1">
-              Set{" "}
-              <code className="bg-muted px-1 rounded">SLACK_REVIEWS_CHANNEL_ID</code>{" "}
-              in Railway for automatic daily sync, or paste a channel ID below
-              for manual sync only.
-            </p>
-          )}
-          <div className="flex flex-wrap gap-2 items-center">
-            {!slackChannelConfigured && (
-              <input
-                type="text"
-                value={channelId}
-                onChange={(e) => setChannelId(e.target.value)}
-                placeholder="e.g. C01234ABCD"
-                className="px-3 py-2 text-sm border border-border rounded-lg bg-background min-w-[200px]"
-              />
-            )}
-            <button
-              type="button"
-              onClick={handleSyncSlack}
-              disabled={syncBusy}
-              className="px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {syncBusy ? "Syncing…" : "Sync now"}
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="block text-xs text-muted font-medium">
-            Upload past reviews (CSV or JSON)
-          </label>
-          <p className="text-xs text-muted">
-            CSV: columns like Review Title, Review Content (and optional Review
-            User Email). JSON:{" "}
-            <code className="bg-muted px-1 rounded">
-              {"{ reviews: [{ title, content }] }"}
-            </code>
-          </p>
-          <div className="flex flex-wrap gap-2 items-center">
-            <select
-              value={uploadSource}
-              onChange={(e) =>
-                setUploadSource(e.target.value as "trustpilot" | "app_store")
-              }
-              className="px-3 py-2 text-sm border border-border rounded-lg bg-background"
-            >
-              <option value="trustpilot">Trustpilot</option>
-              <option value="app_store">App Store</option>
-            </select>
+          {!slackChannelConfigured && (
             <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,.json,text/csv,application/json"
-              onChange={handleUpload}
-              className="hidden"
+              type="text"
+              value={channelId}
+              onChange={(e) => setChannelId(e.target.value)}
+              placeholder="Channel ID"
+              className="px-3 py-2 text-sm border border-border rounded-lg bg-surface min-w-[160px]"
             />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadBusy}
-              className="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-background transition-colors disabled:opacity-50"
-            >
-              {uploadBusy ? "Uploading…" : "Choose file…"}
-            </button>
-          </div>
+          )}
+
+          <select
+            value={uploadSource}
+            onChange={(e) =>
+              setUploadSource(e.target.value as "trustpilot" | "app_store")
+            }
+            className="px-3 py-2 text-sm border border-border rounded-lg bg-surface"
+          >
+            <option value="trustpilot">Trustpilot</option>
+            <option value="app_store">App Store</option>
+          </select>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.json,text/csv,application/json"
+            onChange={handleUpload}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadBusy}
+            className="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-surface transition-colors disabled:opacity-50"
+          >
+            {uploadBusy ? "Uploading…" : "Upload CSV / JSON"}
+          </button>
+
+          <span className="text-xs text-muted ml-auto">
+            {data?.updatedAt
+              ? `Updated ${new Date(data.updatedAt).toLocaleDateString()}${summaryLine ? ` · ${summaryLine}` : ""}`
+              : "No reviews yet"}
+          </span>
         </div>
 
-        <div className="pt-2 border-t border-border space-y-3">
-          <div className="text-sm font-medium text-foreground">
-            Search & organize
-          </div>
-          <p className="text-xs text-muted">
-            Star favorites, tag by topic, then filter the list.
-          </p>
+        {/* Search / filter row */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search reviews…"
+            className="px-3 py-2 text-sm border border-border rounded-lg bg-surface min-w-[200px] flex-1"
+          />
+          <select
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            className="px-3 py-2 text-sm border border-border rounded-lg bg-surface"
+          >
+            <option value="">All topics</option>
+            {topicOptions.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={starredOnly}
+              onChange={(e) => setStarredOnly(e.target.checked)}
+              className="rounded border-border"
+            />
+            Starred only
+          </label>
+        </div>
 
-          <div className="flex flex-wrap gap-2 items-end">
-            <div className="flex flex-col gap-1 min-w-[180px] flex-1">
-              <label className="text-xs text-muted">Keywords</label>
-              <input
-                type="search"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search title or body…"
-                className="px-3 py-2 text-sm border border-border rounded-lg bg-background w-full"
-              />
-            </div>
-            <div className="flex flex-col gap-1 min-w-[160px]">
-              <label className="text-xs text-muted">Topic</label>
-              <select
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                className="px-3 py-2 text-sm border border-border rounded-lg bg-background"
-              >
-                <option value="">All topics</option>
-                {topicOptions.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <label className="flex items-center gap-2 text-sm cursor-pointer pb-2">
-              <input
-                type="checkbox"
-                checked={starredOnly}
-                onChange={(e) => setStarredOnly(e.target.checked)}
-                className="rounded border-border"
-              />
-              Starred only
-            </label>
-          </div>
-
+        {/* Review list */}
+        <div>
           {data && data.reviews.length > 0 ? (
             <>
               <ul className="space-y-3 max-h-[min(28rem,70vh)] overflow-y-auto text-sm pr-1">
