@@ -11,7 +11,7 @@ const USP_TABS: { key: TabOption; label: string }[] = [
   { key: "customer-service", label: "Customer Service" },
   { key: "deals-pricing", label: "Deals & Pricing" },
   { key: "curation-quality", label: "Curation & Quality" },
-  { key: "locker", label: "Locker" },
+  { key: "locker", label: "The Locker" },
   { key: "trust-reliability", label: "Trust & Reliability" },
   { key: "experience-fun", label: "Experience & Fun" },
   { key: "best-price", label: "Best Price" },

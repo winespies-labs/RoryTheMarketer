@@ -20,6 +20,8 @@ const CATEGORY_MAP: Record<string, UspCategory> = {
   "trust/reliability": "trust-reliability",
   "experience / fun": "experience-fun",
   "experience/fun": "experience-fun",
+  "best price": "best-price",
+  "satisfaction guaranteed": "satisfaction-guaranteed",
 };
 
 function slugifyCategory(raw: string): UspCategory | null {

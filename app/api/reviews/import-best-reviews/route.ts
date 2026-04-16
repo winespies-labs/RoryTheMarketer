@@ -22,6 +22,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No reviews parsed from markdown" }, { status: 400 });
     }
 
+    const { useDatabase } = await import("@/lib/database");
+    if (!useDatabase()) {
+      return NextResponse.json(
+        { error: "Import requires a database connection (DATABASE_URL not set)" },
+        { status: 503 }
+      );
+    }
+
     const now = new Date().toISOString();
     const rows = parsed.map((r) => ({
       content: r.content,
