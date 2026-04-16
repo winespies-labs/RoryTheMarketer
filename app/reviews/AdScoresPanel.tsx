@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Review, UspCategory } from "@/lib/reviews";
 
 type SortOption = "score" | "date" | "rating";
@@ -8,22 +8,26 @@ type TabOption = "all" | UspCategory | "unscored";
 
 const USP_TABS: { key: TabOption; label: string }[] = [
   { key: "all", label: "All" },
+  { key: "customer-service", label: "Customer Service" },
+  { key: "deals-pricing", label: "Deals & Pricing" },
+  { key: "curation-quality", label: "Curation & Quality" },
+  { key: "locker", label: "Locker" },
+  { key: "trust-reliability", label: "Trust & Reliability" },
+  { key: "experience-fun", label: "Experience & Fun" },
   { key: "best-price", label: "Best Price" },
-  { key: "locker", label: "The Locker" },
   { key: "satisfaction-guaranteed", label: "Satisfaction Guaranteed" },
   { key: "unscored", label: "Unscored" },
 ];
 
 const USP_BADGE: Record<UspCategory, { label: string; className: string }> = {
-  "best-price": {
-    label: "Best Price",
-    className: "bg-green-100 text-green-800",
-  },
-  locker: { label: "The Locker", className: "bg-blue-100 text-blue-800" },
-  "satisfaction-guaranteed": {
-    label: "Guaranteed",
-    className: "bg-purple-100 text-purple-800",
-  },
+  "customer-service": { label: "Customer Service", className: "bg-blue-100 text-blue-800" },
+  "deals-pricing": { label: "Deals & Pricing", className: "bg-green-100 text-green-800" },
+  "curation-quality": { label: "Curation & Quality", className: "bg-amber-100 text-amber-800" },
+  "locker": { label: "The Locker", className: "bg-indigo-100 text-indigo-800" },
+  "trust-reliability": { label: "Trust & Reliability", className: "bg-teal-100 text-teal-800" },
+  "experience-fun": { label: "Experience & Fun", className: "bg-pink-100 text-pink-800" },
+  "best-price": { label: "Best Price", className: "bg-emerald-100 text-emerald-800" },
+  "satisfaction-guaranteed": { label: "Guaranteed", className: "bg-purple-100 text-purple-800" },
 };
 
 function StarRating({ rating }: { rating?: number | null }) {
@@ -143,6 +147,9 @@ export default function AdScoresPanel() {
   const [scoring, setScoring] = useState(false);
   const [scoredCount, setScoredCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<string | null>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   const fetchTestimonials = useCallback(async () => {
     setLoading(true);
@@ -190,6 +197,30 @@ export default function AdScoresPanel() {
     await fetchTestimonials();
   };
 
+  const handleImportMd = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const markdown = await file.text();
+      const res = await fetch("/api/reviews/import-best-reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brand: "winespies", markdown }),
+      });
+      const data = await res.json() as { inserted?: number; skipped?: number; error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Import failed");
+      setImportResult(`Imported ${data.inserted} reviews (${data.skipped} skipped)`);
+      await fetchTestimonials();
+    } catch (err) {
+      setImportResult(err instanceof Error ? err.message : "Import failed");
+    } finally {
+      setImporting(false);
+      if (importFileRef.current) importFileRef.current.value = "";
+    }
+  };
+
   const handleStar = async (id: string, starred: boolean) => {
     setTestimonials((prev) =>
       prev.map((t) => (t.id === id ? { ...t, starred } : t))
@@ -233,6 +264,24 @@ export default function AdScoresPanel() {
             </span>
           )}
         </button>
+
+        <input
+          ref={importFileRef}
+          type="file"
+          accept=".md,text/markdown"
+          onChange={handleImportMd}
+          className="hidden"
+        />
+        <button
+          onClick={() => importFileRef.current?.click()}
+          disabled={importing}
+          className="px-3 py-1.5 text-sm rounded-lg border border-border text-muted hover:text-foreground transition-colors disabled:opacity-50"
+        >
+          {importing ? "Importing…" : "Import MD"}
+        </button>
+        {importResult && (
+          <span className="text-xs text-muted">{importResult}</span>
+        )}
 
         <div className="flex-1" />
 
