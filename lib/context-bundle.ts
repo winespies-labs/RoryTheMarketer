@@ -30,6 +30,11 @@ const USP_LABELS: Record<UspCategory, string> = {
   "best-price": "Best Price",
   "locker": "The Locker",
   "satisfaction-guaranteed": "Satisfaction Guaranteed",
+  "customer-service": "Customer Service",
+  "deals-pricing": "Deals & Pricing",
+  "curation-quality": "Curation & Quality",
+  "trust-reliability": "Trust & Reliability",
+  "experience-fun": "Experience & Fun",
 };
 
 export async function getContextBundle(brandId: string): Promise<ContextBundle> {

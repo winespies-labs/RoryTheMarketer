@@ -1,7 +1,15 @@
 /** Source of the review (Slack messages may be tagged or we infer from text). */
 export type ReviewSource = "trustpilot" | "app_store" | "unknown";
 
-export type UspCategory = "best-price" | "locker" | "satisfaction-guaranteed";
+export type UspCategory =
+  | "best-price"
+  | "locker"
+  | "satisfaction-guaranteed"
+  | "customer-service"
+  | "deals-pricing"
+  | "curation-quality"
+  | "trust-reliability"
+  | "experience-fun";
 
 export interface Review {
   id: string;
