@@ -354,3 +354,77 @@ export async function loadTopTestimonialsDb(
   );
   return results.flat().map(rowToReview);
 }
+
+export interface BestReviewImportRow {
+  content: string;
+  author?: string;
+  createdAt: string;
+  uspCategory: UspCategory;
+  adScore: number;
+  extractedQuote: string;
+  scoredAt: string;
+}
+
+/** Import hand-curated reviews with scoring pre-populated.
+ *  Dedupes by exact content match — safe to call multiple times. */
+export async function importBestReviewsDb(
+  brandId: string,
+  reviews: BestReviewImportRow[]
+): Promise<{ inserted: number; skipped: number }> {
+  const prisma = getPrisma();
+
+  // Load existing content for dedup
+  const existing = await prisma.customerReview.findMany({
+    where: { brandId },
+    select: { content: true },
+  });
+  const existingContent = new Set(existing.map((r) => r.content));
+
+  const existingIds = await prisma.customerReview.findMany({
+    where: { brandId },
+    select: { id: true },
+  });
+  const idSet = new Set(existingIds.map((x) => x.id));
+
+  let inserted = 0;
+  let skipped = 0;
+
+  for (const r of reviews) {
+    if (existingContent.has(r.content)) {
+      skipped++;
+      continue;
+    }
+    let id = nanoid();
+    while (idSet.has(id)) id = nanoid();
+    idSet.add(id);
+    existingContent.add(r.content);
+
+    try {
+      await prisma.customerReview.create({
+        data: {
+          id,
+          brandId,
+          source: "trustpilot",
+          title: null,
+          content: r.content,
+          author: r.author ?? null,
+          rating: 5,
+          createdAt: new Date(r.createdAt),
+          slackMessageTs: null,
+          starred: false,
+          topics: [],
+          uspCategory: r.uspCategory,
+          adScore: r.adScore,
+          extractedQuote: r.extractedQuote,
+          scoredAt: new Date(r.scoredAt),
+        },
+      });
+      inserted++;
+    } catch {
+      skipped++;
+    }
+  }
+
+  await touchMeta(brandId);
+  return { inserted, skipped };
+}
