@@ -328,7 +328,16 @@ export async function loadTopTestimonialsDb(
   brandId: string
 ): Promise<Review[]> {
   const prisma = getPrisma();
-  const categories: UspCategory[] = ["best-price", "locker", "satisfaction-guaranteed"];
+  const categories: UspCategory[] = [
+    "best-price",
+    "locker",
+    "satisfaction-guaranteed",
+    "customer-service",
+    "deals-pricing",
+    "curation-quality",
+    "trust-reliability",
+    "experience-fun",
+  ];
   const results = await Promise.all(
     categories.map((cat) =>
       prisma.customerReview.findMany({

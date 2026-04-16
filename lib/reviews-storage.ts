@@ -336,7 +336,16 @@ export async function loadTopTestimonialsForContext(
     return loadTopTestimonialsDb(brandId);
   }
   const data = readReviewsFile(brandId);
-  const categories: UspCategory[] = ["best-price", "locker", "satisfaction-guaranteed"];
+  const categories: UspCategory[] = [
+    "best-price",
+    "locker",
+    "satisfaction-guaranteed",
+    "customer-service",
+    "deals-pricing",
+    "curation-quality",
+    "trust-reliability",
+    "experience-fun",
+  ];
   const results: Review[] = [];
   for (const cat of categories) {
     const scored = data.reviews
