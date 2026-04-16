@@ -10,6 +10,8 @@ import {
   loadUnscoredReviewsDb,
   getUnscoredCountDb,
   loadTopTestimonialsDb,
+  importBestReviewsDb,
+  type BestReviewImportRow,
   type ListReviewsFilters,
 } from "@/lib/reviews-db";
 import { readReviewsFile, writeReviewsFile } from "@/lib/reviews-file";
@@ -355,4 +357,15 @@ export async function loadTopTestimonialsForContext(
     results.push(...scored);
   }
   return results;
+}
+
+export type { BestReviewImportRow };
+
+export async function importBestReviews(
+  brandId: string,
+  reviews: BestReviewImportRow[]
+): Promise<{ inserted: number; skipped: number }> {
+  if (!useDatabase()) return { inserted: 0, skipped: reviews.length };
+  await importJsonToDbIfEmpty(brandId);
+  return importBestReviewsDb(brandId, reviews);
 }
