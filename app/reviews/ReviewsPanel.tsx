@@ -47,8 +47,10 @@ export default function ReviewsPanel() {
   const [topic, setTopic] = useState("");
   const [starredOnly, setStarredOnly] = useState(false);
   const [loadBusy, setLoadBusy] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [patchBusy, setPatchBusy] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     fetch("/api/reviews/config")
@@ -77,6 +79,7 @@ export default function ReviewsPanel() {
   const fetchPage = useCallback(
     async (offset: number, append: boolean) => {
       setLoadBusy(true);
+      setLoadError(null);
       try {
         const res = await fetch(`/api/reviews?${buildParams(offset)}`);
         const d = (await res.json()) as ReviewsApiResponse;
@@ -89,11 +92,15 @@ export default function ReviewsPanel() {
               reviews: [...prev.reviews, ...d.reviews],
             };
           });
+          setTimeout(() => {
+            listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
+          }, 0);
         } else {
           setData(d);
         }
-      } catch {
+      } catch (e) {
         if (!append) setData(null);
+        else setLoadError(e instanceof Error ? e.message : "Failed to load more reviews");
       } finally {
         setLoadBusy(false);
       }
@@ -305,7 +312,7 @@ export default function ReviewsPanel() {
         <div>
           {data && data.reviews.length > 0 ? (
             <>
-              <ul className="space-y-3 max-h-[min(28rem,70vh)] overflow-y-auto text-sm pr-1">
+              <ul ref={listRef} className="space-y-3 max-h-[min(28rem,70vh)] overflow-y-auto text-sm pr-1">
                 {data.reviews.map((r) => (
                   <li
                     key={r.id}
@@ -396,6 +403,9 @@ export default function ReviewsPanel() {
                 >
                   {loadBusy ? "Loading…" : "Load more"}
                 </button>
+              )}
+              {loadError && (
+                <p className="text-sm text-danger mt-1">{loadError}</p>
               )}
             </>
           ) : data && data.storeTotal === 0 ? (
